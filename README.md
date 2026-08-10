@@ -18,9 +18,15 @@
 
 ## 📸 Screenshots
 
+<div align="center">
+
 | Dashboard | 4-Side Scanner | Inspection Detail |
-|-----------|---------------|-------------------|
-| *Daftar kendaraan & status inspeksi* | *Scan 4 sisi kendaraan + AI detection* | *Laporan kerusakan & annotated images* |
+| :---: | :---: | :---: |
+| <img src="screenshots/dashboard.png" width="220"/> | <img src="screenshots/4 side scanner.png" width="220"/> | <img src="screenshots/inspection detail.png" width="220"/> |
+| Daftar kendaraan & statistik inspeksi | Scanner 4 sisi kendaraan + AI detection | Laporan kerusakan & annotated bounding box |
+
+</div>
+
 
 ---
 
@@ -61,20 +67,21 @@ Flutter App  ←  JSON Response (damages, bboxCoordinates, annotatedImagePath)
 
 Model **YOLOv12** dilatih dengan dataset **CarDD (Car Damage Detection)** untuk mendeteksi 6 jenis kerusakan:
 
-| Kode | Jenis Kerusakan | Ikon |
-|------|----------------|------|
-| `dent` | Penyok / Lekukan | 🔵 |
-| `scratch` | Goresan / Lecet | 🟡 |
-| `crack` | Retak / Pecah | 🔴 |
-| `glass_shatter` | Kaca Pecah | 🟣 |
-| `lamp_broken` | Lampu Rusak | 🟠 |
-| `tire_flat` | Ban Kempes | ⚪ |
+| Kode            | Jenis Kerusakan  | Ikon |
+| --------------- | ---------------- | ---- |
+| `dent`          | Penyok / Lekukan | 🔵   |
+| `scratch`       | Goresan / Lecet  | 🟡   |
+| `crack`         | Retak / Pecah    | 🔴   |
+| `glass_shatter` | Kaca Pecah       | 🟣   |
+| `lamp_broken`   | Lampu Rusak      | 🟠   |
+| `tire_flat`     | Ban Kempes       | ⚪   |
 
 ---
 
 ## 🛠️ Tech Stack
 
 ### 📱 Frontend — `otoscan_app/`
+
 - **Framework**: Flutter 3.x (Multi-Platform)
 - **State Management**: Provider
 - **Features**:
@@ -84,6 +91,7 @@ Model **YOLOv12** dilatih dengan dataset **CarDD (Car Damage Detection)** untuk 
   - Manajemen data kendaraan, karyawan, dan history inspeksi
 
 ### ⚡ Backend API — `otoscan-api/`
+
 - **Language**: Go (Golang) v1.21+
 - **Framework**: Fiber v2
 - **Database**: PostgreSQL + GORM ORM
@@ -94,6 +102,7 @@ Model **YOLOv12** dilatih dengan dataset **CarDD (Car Damage Detection)** untuk 
   - Cascading delete inspeksi
 
 ### 🧠 AI Microservice — `ai-service/`
+
 - **Language**: Python 3.10+
 - **Framework**: FastAPI + Uvicorn
 - **Model**: YOLOv12 (CarDD Dataset)
@@ -106,12 +115,12 @@ Model **YOLOv12** dilatih dengan dataset **CarDD (Car Damage Detection)** untuk 
 
 ### Prerequisites
 
-| Tool | Minimum Version |
-|------|----------------|
-| Flutter SDK | 3.x |
-| Go | 1.21+ |
-| Python | 3.10+ |
-| PostgreSQL | 14+ |
+| Tool        | Minimum Version |
+| ----------- | --------------- |
+| Flutter SDK | 3.x             |
+| Go          | 1.21+           |
+| Python      | 3.10+           |
+| PostgreSQL  | 14+             |
 
 ### 📥 Clone Repository
 
@@ -210,15 +219,15 @@ Otoscan-AI/
 
 ## 📡 API Endpoints
 
-| Method | Endpoint | Deskripsi |
-|--------|----------|-----------|
-| `POST` | `/api/auth/login` | Login pengguna |
-| `GET` | `/api/vehicles` | Daftar semua kendaraan |
-| `GET` | `/api/employees` | Daftar semua karyawan |
-| `GET` | `/api/inspections` | Daftar semua inspeksi |
-| `POST` | `/api/inspections` | Buat inspeksi baru |
-| `POST` | `/api/inspections/:id/upload-and-detect` | Upload foto + jalankan AI YOLOv12 |
-| `DELETE` | `/api/inspections/:id` | Hapus data inspeksi |
+| Method   | Endpoint                                 | Deskripsi                         |
+| -------- | ---------------------------------------- | --------------------------------- |
+| `POST`   | `/api/auth/login`                        | Login pengguna                    |
+| `GET`    | `/api/vehicles`                          | Daftar semua kendaraan            |
+| `GET`    | `/api/employees`                         | Daftar semua karyawan             |
+| `GET`    | `/api/inspections`                       | Daftar semua inspeksi             |
+| `POST`   | `/api/inspections`                       | Buat inspeksi baru                |
+| `POST`   | `/api/inspections/:id/upload-and-detect` | Upload foto + jalankan AI YOLOv12 |
+| `DELETE` | `/api/inspections/:id`                   | Hapus data inspeksi               |
 
 ---
 
@@ -232,7 +241,7 @@ docker-compose up -d
 
 ## 👤 Author
 
-**Fitra A. Romeo**  
+**Fitra Romeo Winky**  
 [![GitHub](https://img.shields.io/badge/GitHub-fitraaromeo-181717?style=flat&logo=github)](https://github.com/fitraaromeo)
 
 ---
