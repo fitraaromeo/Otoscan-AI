@@ -47,18 +47,21 @@ Otoscan-AI (Monorepo)
 
 ### 🔄 Alur Data
 
-```
-Flutter App  →  [POST /api/inspections/upload-and-detect]  →  Go API
-                                                                  ↓
-                                                       [POST /detect]  →  Python AI
-                                                                              ↓
-                                                               YOLOv12 Inference
-                                                                              ↓
-                                                       Annotated Image + JSON Result
-                                                                  ↓
-                                              Saved to PostgreSQL + Disk (/uploads/)
-                                                                  ↓
-Flutter App  ←  JSON Response (damages, bboxCoordinates, annotatedImagePath)
+```mermaid
+flowchart LR
+    A([📱 Flutter App]) -- POST /upload-and-detect --> B([⚡ Go Fiber API])
+    B -- POST /detect --> C([🧠 Python AI])
+    C --> D([🔍 YOLOv12 Inference])
+    D --> E([🖼️ Annotated Image + JSON Result])
+    E --> F([💾 PostgreSQL + Disk])
+    F -- JSON Response --> A
+
+    style A fill:#02569B,color:#fff,stroke:#0288D1
+    style B fill:#00ADD8,color:#fff,stroke:#00838F
+    style C fill:#3776AB,color:#fff,stroke:#1a5276
+    style D fill:#FF6B35,color:#fff,stroke:#E55B2B
+    style E fill:#6C3483,color:#fff,stroke:#5B2C6F
+    style F fill:#316192,color:#fff,stroke:#1a4f7a
 ```
 
 ---
@@ -241,8 +244,12 @@ docker-compose up -d
 
 ## 👤 Author
 
-**Fitra Romeo Winky**  
-[![GitHub](https://img.shields.io/badge/GitHub-fitraaromeo-181717?style=flat&logo=github)](https://github.com/fitraaromeo)
+**Fitra Romeo Winky**
+
+[![GitHub](https://img.shields.io/badge/GitHub-fitraaromeo-181717?style=flat&logo=github&logoColor=white)](https://github.com/fitraaromeo)
+[![Instagram](https://img.shields.io/badge/Instagram-fitraaromeo-E4405F?style=flat&logo=instagram&logoColor=white)](https://www.instagram.com/fitraaromeo)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Fitra%20Winky-0A66C2?style=flat&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/fitra-winky-380836266/)
+[![Portfolio](https://img.shields.io/badge/Portfolio-Vercel-000000?style=flat&logo=vercel&logoColor=white)](https://portfolio-fitra-romeo-winky.vercel.app/)
 
 ---
 
