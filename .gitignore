@@ -1,0 +1,32 @@
+# System & IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Python AI Service
+ai-service/__pycache__/
+ai-service/*/__pycache__/
+ai-service/*.pyc
+ai-service/venv/
+ai-service/.env
+
+# Go Backend API
+otoscan-api/otoscan-api
+otoscan-api/*.exe
+otoscan-api/.env
+otoscan-api/uploads/*
+!otoscan-api/uploads/.gitkeep
+!otoscan-api/uploads/inspections/.gitkeep
+!otoscan-api/uploads/results/.gitkeep
+
+# Flutter Frontend App
+otoscan_app/.dart_tool/
+otoscan_app/.flutter-plugins
+otoscan_app/.flutter-plugin-dependencies
+otoscan_app/.pub-cache/
+otoscan_app/.pub/
+otoscan_app/build/
+otoscan_app/ephemeral/
+otoscan_app/*.lock
