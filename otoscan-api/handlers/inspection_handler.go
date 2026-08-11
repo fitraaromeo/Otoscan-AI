@@ -9,6 +9,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // CreateInspection handles creation of a new vehicle inspection record
@@ -180,22 +181,26 @@ func GetInspectionByID(c *fiber.Ctx) error {
 	})
 }
 
-// DeleteInspection handles soft deleting an inspection record
+// DeleteInspection handles soft deleting an inspection record and all its photos & damage items
 func DeleteInspection(c *fiber.Ctx) error {
 	id := c.Params("id")
 
 	if config.DB != nil {
-		if err := config.DB.Delete(&models.Inspection{}, "id = ?", id).Error; err != nil {
+		err := config.DB.Transaction(func(tx *gorm.DB) error {
+			return CascadeSoftDeleteInspection(tx, id)
+		})
+		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"status":  "error",
-				"message": "Gagal menghapus data inspeksi",
+				"message": "Gagal menghapus data inspeksi dan foto terkait",
+				"error":   err.Error(),
 			})
 		}
 	}
 
 	return c.JSON(fiber.Map{
 		"status":  "success",
-		"message": "Data inspeksi berhasil dihapus (soft delete)",
+		"message": "Data inspeksi dan foto terkait berhasil dihapus (soft delete)",
 	})
 }
 

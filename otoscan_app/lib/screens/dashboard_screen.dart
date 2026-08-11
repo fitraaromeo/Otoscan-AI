@@ -586,6 +586,25 @@ class DashboardScreenState extends State<DashboardScreen> {
                                               color: textSecondary,
                                             ),
                                           ),
+                                          const SizedBox(height: 3),
+                                          Row(
+                                            children: [
+                                              Icon(
+                                                Icons.access_time_rounded,
+                                                size: 12,
+                                                color: textSecondary.withAlpha(150),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                _formatDate(record.createdAt),
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: textSecondary.withAlpha(180),
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ],
                                       ),
                                     ),
@@ -667,4 +686,17 @@ class _StatMiniCard extends StatelessWidget {
       ),
     );
   }
+}
+
+String _formatDate(DateTime dt) {
+  final day = dt.day.toString().padLeft(2, '0');
+  const monthNames = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+    'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+  ];
+  final month = monthNames[dt.month - 1];
+  final year = dt.year;
+  final hour = dt.hour.toString().padLeft(2, '0');
+  final min = dt.minute.toString().padLeft(2, '0');
+  return '$day $month $year • $hour:$min WIB';
 }

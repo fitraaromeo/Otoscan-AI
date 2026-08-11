@@ -81,9 +81,10 @@ class AppState extends ChangeNotifier {
       }
 
       DateTime createdAt = DateTime.now();
-      if (json['created_at'] != null) {
+      final rawCreated = json['createdAt'] ?? json['created_at'];
+      if (rawCreated != null) {
         try {
-          createdAt = DateTime.parse(json['created_at'].toString());
+          createdAt = DateTime.parse(rawCreated.toString());
         } catch (_) {}
       }
 

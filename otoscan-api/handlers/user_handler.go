@@ -9,6 +9,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // PopulateUserVehicleCount fills the non-persisted VehicleCount field on User
@@ -159,21 +160,25 @@ func UpdateUser(c *fiber.Ctx) error {
 	})
 }
 
-// DeleteUser handles soft deleting a user
+// DeleteUser handles soft deleting a user and cascading to all owned vehicles, inspections, photos, and damage items
 func DeleteUser(c *fiber.Ctx) error {
 	id := c.Params("id")
 
 	if config.DB != nil {
-		if err := config.DB.Delete(&models.User{}, "id = ?", id).Error; err != nil {
+		err := config.DB.Transaction(func(tx *gorm.DB) error {
+			return CascadeSoftDeleteUser(tx, id)
+		})
+		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"status":  "error",
-				"message": "Failed to delete client",
+				"message": "Failed to delete client and associated vehicle records",
+				"error":   err.Error(),
 			})
 		}
 	}
 
 	return c.JSON(fiber.Map{
 		"status":  "success",
-		"message": "Client deleted successfully",
+		"message": "Client and associated vehicle records deleted successfully (soft delete)",
 	})
 }

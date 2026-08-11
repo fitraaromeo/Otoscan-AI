@@ -9,6 +9,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // VehicleRequest payload supporting both camelCase (userId) and snake_case (user_id)
@@ -194,21 +195,25 @@ func UpdateVehicle(c *fiber.Ctx) error {
 	})
 }
 
-// DeleteVehicle handles soft deleting a vehicle record
+// DeleteVehicle handles soft deleting a vehicle record along with all its associated inspections
 func DeleteVehicle(c *fiber.Ctx) error {
 	id := c.Params("id")
 
 	if config.DB != nil {
-		if err := config.DB.Delete(&models.Vehicle{}, "id = ?", id).Error; err != nil {
+		err := config.DB.Transaction(func(tx *gorm.DB) error {
+			return CascadeSoftDeleteVehicle(tx, id)
+		})
+		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"status":  "error",
-				"message": "Failed to delete vehicle data",
+				"message": "Failed to delete vehicle and associated inspection data",
+				"error":   err.Error(),
 			})
 		}
 	}
 
 	return c.JSON(fiber.Map{
 		"status":  "success",
-		"message": "Vehicle deleted successfully",
+		"message": "Vehicle and associated inspection data deleted successfully (soft delete)",
 	})
 }
