@@ -97,7 +97,7 @@ class VehicleManagementScreenState extends State<VehicleManagementScreen> {
                         labelText: 'Vehicle Category',
                         prefixIcon: Icon(Icons.category),
                       ),
-                      items: ['Sedan', 'SUV', 'MPV', 'Hatchback', 'Pickup', 'Truck', 'Motorcycle']
+                      items: ['Sedan', 'SUV', 'MPV', 'Hatchback', 'Crossover', 'Coupe', 'Minivan', 'Pickup']
                           .map((j) => DropdownMenuItem(value: j, child: Text(j)))
                           .toList(),
                       onChanged: (val) {
