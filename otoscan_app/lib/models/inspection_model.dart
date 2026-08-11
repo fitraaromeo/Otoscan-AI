@@ -2,68 +2,68 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
 enum ScanAngle {
+  kanan,
+  kiri,
   depan,
-  belakang,
-  samping,
-  atas;
+  belakang;
 
   String get label {
     switch (this) {
+      case ScanAngle.kanan:
+        return 'Kanan';
+      case ScanAngle.kiri:
+        return 'Kiri';
       case ScanAngle.depan:
-        return 'Front';
+        return 'Depan';
       case ScanAngle.belakang:
-        return 'Rear';
-      case ScanAngle.samping:
-        return 'Side';
-      case ScanAngle.atas:
-        return 'Top';
+        return 'Belakang';
     }
   }
 
   String get description {
     switch (this) {
+      case ScanAngle.kanan:
+        return 'Scan sisi kanan kendaraan: pintu, spion, bodi & roda kanan';
+      case ScanAngle.kiri:
+        return 'Scan sisi kiri kendaraan: pintu, spion, bodi & roda kiri';
       case ScanAngle.depan:
-        return 'Scan front bumper, hood, windshield & headlights';
+        return 'Scan bumper depan, kap mesin, kaca depan & lampu utama';
       case ScanAngle.belakang:
-        return 'Scan trunk, rear bumper & brake lights';
-      case ScanAngle.samping:
-        return 'Scan doors, side mirrors, body panels & wheels';
-      case ScanAngle.atas:
-        return 'Scan vehicle roof & sunroof';
+        return 'Scan bagasi, bumper belakang & lampu rem';
     }
   }
 
   IconData get iconData {
     switch (this) {
-      case ScanAngle.depan:
+      case ScanAngle.kanan:
         return Icons.directions_car_rounded;
-      case ScanAngle.belakang:
+      case ScanAngle.kiri:
+        return Icons.directions_car_outlined;
+      case ScanAngle.depan:
         return Icons.minor_crash_rounded;
-      case ScanAngle.samping:
-        return Icons.sensor_door_rounded;
-      case ScanAngle.atas:
-        return Icons.roofing_rounded;
+      case ScanAngle.belakang:
+        return Icons.drive_eta_rounded;
     }
   }
 
   String get iconAsset {
     switch (this) {
+      case ScanAngle.kanan:
+        return 'assets/icons/side.png';
+      case ScanAngle.kiri:
+        return 'assets/icons/side.png';
       case ScanAngle.depan:
         return 'assets/icons/front.png';
       case ScanAngle.belakang:
         return 'assets/icons/rear.png';
-      case ScanAngle.samping:
-        return 'assets/icons/side.png';
-      case ScanAngle.atas:
-        return 'assets/icons/top.png';
     }
   }
 }
 
 enum DamageSeverity {
-  ringan('Light', 1),
-  sedang('Moderate', 2),
-  berat('Severe', 3);
+  ringan('Ringan', 1),
+  sedang('Sedang', 2),
+  berat('Berat', 3);
 
   final String label;
   final int level;
@@ -120,8 +120,8 @@ class AngleCapture {
 
 enum InspectionStatus {
   draft('Draft'),
-  inProgress('In Progress'),
-  completed('Completed');
+  inProgress('Proses'),
+  completed('Selesai');
 
   final String label;
   const InspectionStatus(this.label);
@@ -149,12 +149,12 @@ class VehicleRecord {
     required this.createdAt,
     this.status = InspectionStatus.inProgress,
     Map<ScanAngle, AngleCapture>? angleCaptures,
-    this.inspectorName = 'AI Inspection Bot',
+    this.inspectorName = 'AI Inspector',
   }) : angleCaptures = angleCaptures ?? {
+          ScanAngle.kanan: AngleCapture(angle: ScanAngle.kanan),
+          ScanAngle.kiri: AngleCapture(angle: ScanAngle.kiri),
           ScanAngle.depan: AngleCapture(angle: ScanAngle.depan),
           ScanAngle.belakang: AngleCapture(angle: ScanAngle.belakang),
-          ScanAngle.samping: AngleCapture(angle: ScanAngle.samping),
-          ScanAngle.atas: AngleCapture(angle: ScanAngle.atas),
         };
 
   factory VehicleRecord.createNew({
@@ -188,5 +188,9 @@ class VehicleRecord {
 
   int get capturedAnglesCount {
     return angleCaptures.values.where((c) => c.isCaptured).length;
+  }
+
+  AngleCapture getAngleCapture(ScanAngle angle) {
+    return angleCaptures.putIfAbsent(angle, () => AngleCapture(angle: angle));
   }
 }

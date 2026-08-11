@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -12,23 +13,38 @@ class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
+  State<DashboardScreen> createState() => DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class DashboardScreenState extends State<DashboardScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  Timer? _autoRefreshTimer;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<AppState>(context, listen: false).fetchInspectionsFromApi();
+      refreshData();
     });
+    _autoRefreshTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (mounted) {
+        refreshData();
+      }
+    });
+  }
+
+  Future<void> refreshData() async {
+    if (!mounted) return;
+    await Provider.of<AppState>(
+      context,
+      listen: false,
+    ).fetchInspectionsFromApi();
   }
 
   @override
   void dispose() {
+    _autoRefreshTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -45,9 +61,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       await Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (context) => VehicleScanScreen(
-            record: newRecord,
-          ),
+          builder: (context) => VehicleScanScreen(record: newRecord),
         ),
       );
 
@@ -61,13 +75,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textPrimary = isDark ? Colors.white : AppColors.lightTextPrimary;
-    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    final textSecondary = isDark
+        ? AppColors.darkTextSecondary
+        : AppColors.lightTextSecondary;
     final cardBg = isDark ? AppColors.darkSurface : Colors.white;
-    final borderColor = isDark ? Colors.white.withAlpha(20) : Colors.black.withAlpha(12);
+    final borderColor = isDark
+        ? Colors.white.withAlpha(20)
+        : Colors.black.withAlpha(12);
 
     return Consumer<AppState>(
       builder: (context, appState, child) {
-        final records = appState.records;
+        final records = appState.records
+            .where((r) => r.nopol.trim().isNotEmpty)
+            .toList();
         final totalInspections = records.length;
 
         final filteredRecords = records.where((r) {
@@ -80,7 +100,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               r.id.toLowerCase().contains(q) ||
               r.inspectorName.toLowerCase().contains(q);
         }).toList();
-        
+
         int cleanCount = 0;
         int damageCount = 0;
         for (var r in records) {
@@ -92,7 +112,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         }
 
         return Scaffold(
-          backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+          backgroundColor: isDark
+              ? AppColors.darkBackground
+              : AppColors.lightBackground,
           appBar: AppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
@@ -102,7 +124,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: (isDark ? AppColors.neonCyan : AppColors.lightPrimary).withAlpha(35),
+                    color:
+                        (isDark ? AppColors.neonCyan : AppColors.lightPrimary)
+                            .withAlpha(35),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
@@ -145,372 +169,440 @@ class _DashboardScreenState extends State<DashboardScreen> {
               IconButton(
                 icon: Icon(
                   isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-                  color: isDark ? AppColors.darkTextPrimary : AppColors.lightPrimaryAccent,
+                  color: isDark
+                      ? AppColors.darkTextPrimary
+                      : AppColors.lightPrimaryAccent,
                 ),
                 onPressed: () {
                   appState.toggleTheme();
                 },
-                tooltip: isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode',
+                tooltip: isDark
+                    ? 'Switch to Light Mode'
+                    : 'Switch to Dark Mode',
               ),
               const SizedBox(width: 8),
             ],
           ),
-          body: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.only(left: 20, right: 20, top: 12, bottom: 40),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Quick Start Scan Container
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1B1F2D) : Colors.white,
-                    borderRadius: BorderRadius.circular(32),
-                    border: Border.all(color: borderColor),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withAlpha(isDark ? 60 : 15),
-                        blurRadius: 20,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withAlpha(30),
-                              shape: BoxShape.circle,
+          body: RefreshIndicator(
+            onRefresh: refreshData,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
+              padding: const EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 12,
+                bottom: 40,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Quick Start Scan Container
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1B1F2D) : Colors.white,
+                      borderRadius: BorderRadius.circular(32),
+                      border: Border.all(color: borderColor),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withAlpha(isDark ? 60 : 15),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withAlpha(30),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.center_focus_strong_rounded,
+                                color: AppColors.primary,
+                                size: 28,
+                              ),
                             ),
-                            child: const Icon(
-                              Icons.center_focus_strong_rounded,
-                              color: AppColors.primary,
-                              size: 28,
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Start Vehicle Inspection',
-                                  style: TextStyle(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.bold,
-                                    color: textPrimary,
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Start Vehicle Inspection',
+                                    style: TextStyle(
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.bold,
+                                      color: textPrimary,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Click below to begin AI vehicle damage detection',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: textSecondary,
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Click below to begin AI vehicle damage detection',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: textSecondary,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 18),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 52,
-                        child: ElevatedButton.icon(
-                          onPressed: () => _openNewInspectionDialog(context),
-                          icon: const Icon(Icons.add_rounded, color: Colors.white, size: 22),
-                          label: const Text(
-                            'Tambah Inspeksi',
-                            style: TextStyle(
+                          ],
+                        ),
+                        const SizedBox(height: 18),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 52,
+                          child: ElevatedButton.icon(
+                            onPressed: () => _openNewInspectionDialog(context),
+                            icon: const Icon(
+                              Icons.add_rounded,
                               color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                              letterSpacing: 0.5,
+                              size: 22,
+                            ),
+                            label: const Text(
+                              'Tambah Inspeksi',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              elevation: 6,
+                              shadowColor: AppColors.primary.withAlpha(120),
+                              shape: const StadiumBorder(),
                             ),
                           ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            elevation: 6,
-                            shadowColor: AppColors.primary.withAlpha(120),
-                            shape: const StadiumBorder(),
-                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Statistics Summary Row
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _StatMiniCard(
+                          title: 'Total Inspections',
+                          value: '$totalInspections',
+                          icon: Icons.assignment_turned_in_rounded,
+                          color: AppColors.primary,
+                          isDark: isDark,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _StatMiniCard(
+                          title: 'Clean',
+                          value: '$cleanCount',
+                          icon: Icons.check_circle_outline_rounded,
+                          color: AppColors.success,
+                          isDark: isDark,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _StatMiniCard(
+                          title: 'Damaged',
+                          value: '$damageCount',
+                          icon: Icons.warning_amber_rounded,
+                          color: AppColors.danger,
+                          isDark: isDark,
                         ),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 24),
+                  const SizedBox(height: 28),
 
-                // Statistics Summary Row
-                Row(
-                  children: [
-                    Expanded(
-                      child: _StatMiniCard(
-                        title: 'Total Inspections',
-                        value: '$totalInspections',
-                        icon: Icons.assignment_turned_in_rounded,
-                        color: AppColors.primary,
-                        isDark: isDark,
+                  // Inspection History Header
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Inspection History',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: textPrimary,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _StatMiniCard(
-                        title: 'Clean',
-                        value: '$cleanCount',
-                        icon: Icons.check_circle_outline_rounded,
-                        color: AppColors.success,
-                        isDark: isDark,
+                      Text(
+                        _searchQuery.isNotEmpty
+                            ? '${filteredRecords.length} of ${records.length} Vehicles'
+                            : '${records.length} Vehicles',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: textSecondary,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _StatMiniCard(
-                        title: 'Damaged',
-                        value: '$damageCount',
-                        icon: Icons.warning_amber_rounded,
-                        color: AppColors.danger,
-                        isDark: isDark,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 28),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
 
-                // Inspection History Header
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Inspection History',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: textPrimary,
+                  // Live Search Input Bar
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    child: TextField(
+                      controller: _searchController,
+                      style: TextStyle(color: textPrimary, fontSize: 13),
+                      onChanged: (val) {
+                        setState(() {
+                          _searchQuery = val;
+                        });
+                      },
+                      decoration: InputDecoration(
+                        hintText: 'Cari Nopol, Merk, Tipe, Pemilik, atau ID...',
+                        hintStyle: TextStyle(
+                          color: textSecondary,
+                          fontSize: 13,
+                        ),
+                        prefixIcon: Icon(
+                          Icons.search_rounded,
+                          color: isDark
+                              ? AppColors.neonCyan
+                              : AppColors.lightPrimary,
+                          size: 20,
+                        ),
+                        suffixIcon: _searchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: Icon(
+                                  Icons.clear_rounded,
+                                  color: textSecondary,
+                                  size: 18,
+                                ),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  setState(() {
+                                    _searchQuery = '';
+                                  });
+                                },
+                              )
+                            : null,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(30),
+                          borderSide: BorderSide(color: borderColor),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(30),
+                          borderSide: BorderSide(color: borderColor),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(30),
+                          borderSide: BorderSide(
+                            color: isDark
+                                ? AppColors.neonCyan
+                                : AppColors.lightPrimary,
+                            width: 1.5,
+                          ),
+                        ),
+                        filled: true,
+                        fillColor: isDark
+                            ? AppColors.darkSurface
+                            : Colors.white,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                       ),
                     ),
-                    Text(
-                      _searchQuery.isNotEmpty
-                          ? '${filteredRecords.length} of ${records.length} Vehicles'
-                          : '${records.length} Vehicles',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
+                  ),
 
-                // Live Search Input Bar
-                Container(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  child: TextField(
-                    controller: _searchController,
-                    style: TextStyle(color: textPrimary, fontSize: 13),
-                    onChanged: (val) {
-                      setState(() {
-                        _searchQuery = val;
-                      });
-                    },
-                    decoration: InputDecoration(
-                      hintText: 'Cari Nopol, Merk, Tipe, Pemilik, atau ID...',
-                      hintStyle: TextStyle(color: textSecondary, fontSize: 13),
-                      prefixIcon: Icon(Icons.search_rounded, color: isDark ? AppColors.neonCyan : AppColors.lightPrimary, size: 20),
-                      suffixIcon: _searchQuery.isNotEmpty
-                          ? IconButton(
-                              icon: Icon(Icons.clear_rounded, color: textSecondary, size: 18),
+                  // Inspection Records List
+                  if (filteredRecords.isEmpty)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(32),
+                      decoration: BoxDecoration(
+                        color: cardBg,
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(color: borderColor),
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(
+                            _searchQuery.isNotEmpty
+                                ? Icons.search_off_rounded
+                                : Icons.inbox_rounded,
+                            size: 48,
+                            color: textSecondary.withAlpha(100),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            _searchQuery.isNotEmpty
+                                ? 'Tidak ada inspeksi yang cocok dengan "$_searchQuery"'
+                                : 'Belum ada riwayat inspeksi',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: textSecondary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          if (_searchQuery.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            TextButton.icon(
                               onPressed: () {
                                 _searchController.clear();
                                 setState(() {
                                   _searchQuery = '';
                                 });
                               },
-                            )
-                          : null,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        borderSide: BorderSide(color: borderColor),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        borderSide: BorderSide(color: borderColor),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        borderSide: BorderSide(color: isDark ? AppColors.neonCyan : AppColors.lightPrimary, width: 1.5),
-                      ),
-                      filled: true,
-                      fillColor: isDark ? AppColors.darkSurface : Colors.white,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    ),
-                  ),
-                ),
-
-                // Inspection Records List
-                if (filteredRecords.isEmpty)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(32),
-                    decoration: BoxDecoration(
-                      color: cardBg,
-                      borderRadius: BorderRadius.circular(28),
-                      border: Border.all(color: borderColor),
-                    ),
-                    child: Column(
-                      children: [
-                        Icon(
-                          _searchQuery.isNotEmpty ? Icons.search_off_rounded : Icons.inbox_rounded,
-                          size: 48,
-                          color: textSecondary.withAlpha(100),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          _searchQuery.isNotEmpty
-                              ? 'Tidak ada inspeksi yang cocok dengan "$_searchQuery"'
-                              : 'Belum ada riwayat inspeksi',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: textSecondary,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        if (_searchQuery.isNotEmpty) ...[
-                          const SizedBox(height: 12),
-                          TextButton.icon(
-                            onPressed: () {
-                              _searchController.clear();
-                              setState(() {
-                                _searchQuery = '';
-                              });
-                            },
-                            icon: const Icon(Icons.refresh_rounded, size: 16),
-                            label: const Text('Reset Pencarian'),
-                          ),
-                        ],
-                      ],
-                    ),
-                  )
-                else
-                  ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: filteredRecords.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final record = filteredRecords[index];
-                      final hasDamage = record.totalDamages > 0;
-
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: cardBg,
-                          borderRadius: BorderRadius.circular(28),
-                          border: Border.all(color: borderColor),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withAlpha(isDark ? 30 : 8),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
+                              icon: const Icon(Icons.refresh_rounded, size: 16),
+                              label: const Text('Reset Pencarian'),
                             ),
                           ],
-                        ),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
+                        ],
+                      ),
+                    )
+                  else
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: filteredRecords.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final record = filteredRecords[index];
+                        final hasDamage = record.totalDamages > 0;
+
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: cardBg,
                             borderRadius: BorderRadius.circular(28),
-                             onTap: () async {
-                               appState.setActiveRecord(record);
-                               await Navigator.of(context).push(
-                                 MaterialPageRoute(
-                                   builder: (context) => InspectionDetailScreen(record: record),
-                                 ),
-                               );
-                               if (context.mounted) {
-                                 await appState.fetchInspectionsFromApi();
-                               }
-                             },
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 48,
-                                    height: 48,
-                                    decoration: BoxDecoration(
-                                      color: (hasDamage ? AppColors.danger : AppColors.success).withAlpha(25),
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                    child: Icon(
-                                      hasDamage ? Icons.minor_crash_rounded : Icons.verified_rounded,
-                                      color: hasDamage ? AppColors.danger : AppColors.success,
-                                      size: 24,
-                                    ),
+                            border: Border.all(color: borderColor),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withAlpha(isDark ? 30 : 8),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(28),
+                              onTap: () async {
+                                appState.setActiveRecord(record);
+                                await Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        InspectionDetailScreen(record: record),
                                   ),
-                                  const SizedBox(width: 14),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Text(
-                                              record.nopol,
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold,
-                                                color: textPrimary,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                              decoration: BoxDecoration(
-                                                color: (hasDamage ? AppColors.danger : AppColors.success).withAlpha(20),
-                                                borderRadius: BorderRadius.circular(8),
-                                              ),
-                                              child: Text(
-                                                hasDamage ? '${record.totalDamages} Damages' : 'Clean',
+                                );
+                                if (context.mounted) {
+                                  await appState.fetchInspectionsFromApi();
+                                }
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 48,
+                                      height: 48,
+                                      decoration: BoxDecoration(
+                                        color:
+                                            (hasDamage
+                                                    ? AppColors.danger
+                                                    : AppColors.success)
+                                                .withAlpha(25),
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      child: Icon(
+                                        hasDamage
+                                            ? Icons.minor_crash_rounded
+                                            : Icons.verified_rounded,
+                                        color: hasDamage
+                                            ? AppColors.danger
+                                            : AppColors.success,
+                                        size: 24,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Text(
+                                                record.nopol,
                                                 style: TextStyle(
-                                                  fontSize: 11,
+                                                  fontSize: 16,
                                                   fontWeight: FontWeight.bold,
-                                                  color: hasDamage ? AppColors.danger : AppColors.success,
+                                                  color: textPrimary,
                                                 ),
                                               ),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          '${record.merk} ${record.tipe} • Owner: ${record.ownerName}',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: textSecondary,
+                                              const SizedBox(width: 8),
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 2,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color:
+                                                      (hasDamage
+                                                              ? AppColors.danger
+                                                              : AppColors
+                                                                    .success)
+                                                          .withAlpha(20),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                ),
+                                                child: Text(
+                                                  hasDamage
+                                                      ? '${record.totalDamages} Damages'
+                                                      : 'Clean',
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: hasDamage
+                                                        ? AppColors.danger
+                                                        : AppColors.success,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                        ),
-                                      ],
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            '${record.merk} ${record.tipe} • Owner: ${record.ownerName}',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: textSecondary,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  Icon(
-                                    Icons.chevron_right_rounded,
-                                    color: textSecondary.withAlpha(120),
-                                  ),
-                                ],
+                                    Icon(
+                                      Icons.chevron_right_rounded,
+                                      color: textSecondary.withAlpha(120),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
-              ],
+                        );
+                      },
+                    ),
+                ],
+              ),
             ),
           ),
         );
@@ -542,7 +634,9 @@ class _StatMiniCard extends StatelessWidget {
         color: isDark ? AppColors.darkSurface : Colors.white,
         borderRadius: BorderRadius.circular(28),
         border: Border.all(
-          color: isDark ? Colors.white.withAlpha(15) : Colors.black.withAlpha(10),
+          color: isDark
+              ? Colors.white.withAlpha(15)
+              : Colors.black.withAlpha(10),
         ),
       ),
       child: Column(
@@ -563,7 +657,9 @@ class _StatMiniCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w500,
-              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+              color: isDark
+                  ? AppColors.darkTextSecondary
+                  : AppColors.lightTextSecondary,
             ),
             textAlign: TextAlign.center,
           ),

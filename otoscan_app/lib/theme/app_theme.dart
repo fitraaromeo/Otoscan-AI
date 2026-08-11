@@ -129,12 +129,11 @@ class AppTheme {
           side: const BorderSide(color: AppColors.lightSecondaryAccent, width: 0.8),
         ),
       ),
-      dialogTheme: DialogThemeData(
-        backgroundColor: AppColors.lightSurface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
-          side: const BorderSide(color: AppColors.lightSecondaryAccent, width: 1),
-        ),
+      dialogTheme: const DialogThemeData(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        shadowColor: Colors.transparent,
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -236,12 +235,11 @@ class AppTheme {
           side: const BorderSide(color: AppColors.darkBorderDivider, width: 1), // Subtle Line Dark #334155
         ),
       ),
-      dialogTheme: DialogThemeData(
-        backgroundColor: AppColors.darkSurface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
-          side: const BorderSide(color: AppColors.darkBorderDivider, width: 1),
-        ),
+      dialogTheme: const DialogThemeData(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        shadowColor: Colors.transparent,
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,

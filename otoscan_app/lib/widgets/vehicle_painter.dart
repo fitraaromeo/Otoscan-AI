@@ -202,14 +202,14 @@ class VehiclePainterWidget extends StatelessWidget {
 
   IconData _getAngleIcon(ScanAngle angle) {
     switch (angle) {
-      case ScanAngle.depan:
+      case ScanAngle.kanan:
         return Icons.directions_car_rounded;
+      case ScanAngle.kiri:
+        return Icons.directions_car_filled_outlined;
+      case ScanAngle.depan:
+        return Icons.directions_car_outlined;
       case ScanAngle.belakang:
         return Icons.minor_crash_rounded;
-      case ScanAngle.samping:
-        return Icons.directions_car_filled_outlined;
-      case ScanAngle.atas:
-        return Icons.filter_center_focus_rounded;
     }
   }
 }

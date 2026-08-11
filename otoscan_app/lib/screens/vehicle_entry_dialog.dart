@@ -301,12 +301,16 @@ class _VehicleEntryDialogState extends State<VehicleEntryDialog> {
 
     return Dialog(
       backgroundColor: Colors.transparent,
+      elevation: 0,
+      surfaceTintColor: Colors.transparent,
+      shadowColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       child: Container(
         padding: const EdgeInsets.all(24),
+        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkSurface : Colors.white,
-          borderRadius: BorderRadius.circular(36),
+          borderRadius: BorderRadius.circular(28),
           border: Border.all(
             color: isDark ? Colors.white.withAlpha(20) : Colors.black.withAlpha(15),
           ),

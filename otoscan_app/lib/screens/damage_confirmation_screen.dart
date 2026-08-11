@@ -26,7 +26,7 @@ class _DamageConfirmationModalState extends State<DamageConfirmationModal> {
         final record = appState.activeRecord;
         if (record == null) return const SizedBox.shrink();
 
-        final capture = record.angleCaptures[widget.angle]!;
+        final capture = record.getAngleCapture(widget.angle);
         final damages = capture.damages;
 
         return Container(

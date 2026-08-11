@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'screens/main_navigation_shell.dart';
+import 'screens/splash_screen.dart';
 import 'state/app_state.dart';
 import 'theme/app_theme.dart';
 
@@ -27,7 +27,7 @@ class OtoScanApp extends StatelessWidget {
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
           themeMode: appState.themeMode,
-          home: const MainNavigationShell(),
+          home: const SplashScreen(),
         );
       },
     );

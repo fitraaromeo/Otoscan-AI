@@ -26,24 +26,24 @@ class VehicleScanScreen extends StatefulWidget {
 }
 
 class _VehicleScanScreenState extends State<VehicleScanScreen> with SingleTickerProviderStateMixin {
-  ScanAngle _currentAngle = ScanAngle.depan;
+  ScanAngle _currentAngle = ScanAngle.kanan;
   bool _isScanning = false;
   late AnimationController _scanAnimationController;
   final ImagePicker _picker = ImagePicker();
 
   // Map to store captured photo files / bytes for each angle cross-platform
   final Map<ScanAngle, File?> _capturedPhotos = {
+    ScanAngle.kanan: null,
+    ScanAngle.kiri: null,
     ScanAngle.depan: null,
-    ScanAngle.samping: null,
     ScanAngle.belakang: null,
-    ScanAngle.atas: null,
   };
 
   final Map<ScanAngle, Uint8List?> _capturedBytes = {
+    ScanAngle.kanan: null,
+    ScanAngle.kiri: null,
     ScanAngle.depan: null,
-    ScanAngle.samping: null,
     ScanAngle.belakang: null,
-    ScanAngle.atas: null,
   };
 
   @override
@@ -82,42 +82,25 @@ class _VehicleScanScreenState extends State<VehicleScanScreen> with SingleTicker
 
   /// Capture Photo using Device Camera
   Future<void> _takeCameraPhoto() async {
-    try {
-      final XFile? photo = await _picker.pickImage(
-        source: ImageSource.camera,
-        preferredCameraDevice: CameraDevice.rear,
-        imageQuality: 90,
-        maxWidth: 1280,
-        maxHeight: 1280,
-      );
-
-      if (photo != null) {
-        final photoBytes = await photo.readAsBytes();
-        if (!mounted) return;
-        final appState = Provider.of<AppState>(context, listen: false);
-        final capture = appState.activeRecord?.angleCaptures[_currentAngle];
-        if (capture != null) {
-          capture.annotatedImageUrl = null;
-          capture.rawImageUrl = null;
-        }
-        setState(() {
-          _capturedBytes[_currentAngle] = photoBytes;
-          if (!kIsWeb) {
-            _capturedPhotos[_currentAngle] = File(photo.path);
-          }
-        });
-        _runAIScan(customPhotoBytes: photoBytes, filePath: photo.path);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Camera access failed: ${e.toString()}'),
-            backgroundColor: AppColors.danger,
-          ),
+    if (!mounted) return;
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'CameraComingSoon',
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 300),
+      transitionBuilder: (context, anim1, anim2, child) {
+        return Transform.scale(
+          scale: CurvedAnimation(parent: anim1, curve: Curves.easeOutBack).value,
+          child: FadeTransition(opacity: anim1, child: child),
         );
-      }
-    }
+      },
+      pageBuilder: (context, anim1, anim2) {
+        return _CameraComingSoonDialog(
+          onOpenGallery: _pickGalleryPhoto,
+        );
+      },
+    );
   }
 
   /// Pick Photo from Device Gallery
@@ -263,7 +246,7 @@ class _VehicleScanScreenState extends State<VehicleScanScreen> with SingleTicker
     return Consumer<AppState>(
       builder: (context, appState, child) {
         final record = appState.activeRecord ?? widget.record;
-        final currentCapture = record.angleCaptures[_currentAngle]!;
+        final currentCapture = record.getAngleCapture(_currentAngle);
         final currentPhotoFile = _capturedPhotos[_currentAngle];
         final bool hasPhoto = (currentCapture.annotatedImageUrl != null && currentCapture.annotatedImageUrl!.isNotEmpty) ||
             (currentCapture.rawImageUrl != null && currentCapture.rawImageUrl!.isNotEmpty) ||
@@ -335,7 +318,7 @@ class _VehicleScanScreenState extends State<VehicleScanScreen> with SingleTicker
                   child: Row(
                     children: ScanAngle.values.map((angle) {
                       final isSelected = angle == _currentAngle;
-                      final angleCap = record.angleCaptures[angle]!;
+                      final angleCap = record.getAngleCapture(angle);
                       final isCap = angleCap.isCaptured;
 
                       return Padding(
@@ -782,6 +765,196 @@ class _VehicleScanScreenState extends State<VehicleScanScreen> with SingleTicker
           ),
         );
       },
+    );
+  }
+}
+
+// ── Animated Coming Soon Warning Dialog ──────────────────────────────────────
+class _CameraComingSoonDialog extends StatefulWidget {
+  final VoidCallback onOpenGallery;
+  const _CameraComingSoonDialog({required this.onOpenGallery});
+
+  @override
+  State<_CameraComingSoonDialog> createState() => _CameraComingSoonDialogState();
+}
+
+class _CameraComingSoonDialogState extends State<_CameraComingSoonDialog>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+    _scaleAnimation = Tween<double>(begin: 0.92, end: 1.08).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
+    final textSecondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: isDark ? Colors.white.withAlpha(20) : Colors.black.withAlpha(12),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(isDark ? 100 : 30),
+              blurRadius: 30,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Animated Pulsing Icon Badge
+            ScaleTransition(
+              scale: _scaleAnimation,
+              child: Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.warning.withAlpha(30),
+                  border: Border.all(
+                    color: AppColors.warning.withAlpha(100),
+                    width: 2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.warning.withAlpha(60),
+                      blurRadius: 20,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.camera_enhance_rounded,
+                  color: AppColors.warning,
+                  size: 34,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Tag Badge
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.warning.withAlpha(20),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Text(
+                'FITUR DALAM PENGEMBANGAN',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.0,
+                  color: AppColors.warning,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Title
+            Text(
+              'Pemindaian Kamera Segera Hadir',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: textPrimary,
+                letterSpacing: -0.2,
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            // Subtitle / Description
+            Text(
+              'Modul kamera real-time sedang dalam tahap optimalisasi akurasi AI YOLOv12. Untuk hasil pemindaian terbaik saat ini, silakan gunakan foto dari galeri.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.5,
+                color: textSecondary,
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Buttons
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      'Tutup',
+                      style: TextStyle(
+                        color: textSecondary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      widget.onOpenGallery();
+                    },
+                    icon: const Icon(Icons.photo_library_rounded, size: 16),
+                    label: const Text('Buka Galeri'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      textStyle: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
