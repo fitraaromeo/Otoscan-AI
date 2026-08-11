@@ -168,3 +168,82 @@ func DeleteAngleCapture(c *fiber.Ctx) error {
 		"message": "Sudut pemindaian berhasil dihapus (soft delete)",
 	})
 }
+
+// GetInspectionStatuses returns list of master inspection statuses from PostgreSQL
+func GetInspectionStatuses(c *fiber.Ctx) error {
+	var statuses []models.InspectionStatus
+	var total int64
+
+	page, limit := utils.GetPaginationParams(c)
+
+	if config.DB != nil {
+		config.DB.Model(&models.InspectionStatus{}).Count(&total)
+		offset := (page - 1) * limit
+		config.DB.Order("created_at asc").Limit(limit).Offset(offset).Find(&statuses)
+	}
+
+	meta := utils.BuildPaginationMeta(total, page, limit)
+
+	return c.JSON(fiber.Map{
+		"status":     "success",
+		"count":      len(statuses),
+		"pagination": meta,
+		"data":       statuses,
+	})
+}
+
+// CreateInspectionStatus handles creating a new master inspection status
+func CreateInspectionStatus(c *fiber.Ctx) error {
+	var is models.InspectionStatus
+	if err := c.BodyParser(&is); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Format payload JSON tidak valid",
+		})
+	}
+
+	if is.Code == "" || is.Name == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Code dan Name status inspeksi wajib diisi",
+		})
+	}
+
+	is.ID = uuid.New().String()
+	is.CreatedAt = time.Now()
+	is.UpdatedAt = time.Now()
+
+	if config.DB != nil {
+		if err := config.DB.Create(&is).Error; err != nil {
+			return c.Status(fiber.StatusConflict).JSON(fiber.Map{
+				"status":  "error",
+				"message": "Kode status inspeksi sudah ada",
+			})
+		}
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+		"status":  "success",
+		"message": "Status inspeksi berhasil ditambahkan",
+		"data":    is,
+	})
+}
+
+// DeleteInspectionStatus handles soft deleting a master inspection status definition
+func DeleteInspectionStatus(c *fiber.Ctx) error {
+	id := c.Params("id")
+
+	if config.DB != nil {
+		if err := config.DB.Delete(&models.InspectionStatus{}, "id = ?", id).Error; err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"status":  "error",
+				"message": "Gagal menghapus status inspeksi",
+			})
+		}
+	}
+
+	return c.JSON(fiber.Map{
+		"status":  "success",
+		"message": "Status inspeksi berhasil dihapus (soft delete)",
+	})
+}

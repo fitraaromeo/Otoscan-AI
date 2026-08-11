@@ -16,7 +16,18 @@ CREATE TABLE IF NOT EXISTS damage_types (
     deleted_at TIMESTAMP WITH TIME ZONE
 );
 
--- Table 2: Users (Master Data Pemilik Kendaraan / Pelanggan)
+-- Table 2: Master Inspection Statuses (Master Data Status Inspeksi Kendaraan)
+CREATE TABLE IF NOT EXISTS inspection_statuses (
+    id VARCHAR(36) PRIMARY KEY DEFAULT uuid_generate_v4()::text,
+    code VARCHAR(50) NOT NULL UNIQUE, -- waiting, inProgress, completed, failed
+    name VARCHAR(100) NOT NULL, -- Menunggu Antrean, In Progress, Selesai, Gagal
+    description TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Table 3: Users (Master Data Pemilik Kendaraan / Pelanggan)
 CREATE TABLE IF NOT EXISTS users (
     id VARCHAR(36) PRIMARY KEY DEFAULT uuid_generate_v4()::text,
     name VARCHAR(100) NOT NULL,
@@ -28,7 +39,7 @@ CREATE TABLE IF NOT EXISTS users (
     deleted_at TIMESTAMP WITH TIME ZONE
 );
 
--- Table 3: Vehicles (Master Data Kendaraan)
+-- Table 4: Vehicles (Master Data Kendaraan)
 CREATE TABLE IF NOT EXISTS vehicles (
     id VARCHAR(36) PRIMARY KEY DEFAULT uuid_generate_v4()::text,
     user_id VARCHAR(36) REFERENCES users(id) ON DELETE SET NULL,
@@ -41,7 +52,7 @@ CREATE TABLE IF NOT EXISTS vehicles (
     deleted_at TIMESTAMP WITH TIME ZONE
 );
 
--- Table 4: Employees (Master Data Karyawan / Inspektur)
+-- Table 5: Employees (Master Data Karyawan / Inspektur)
 CREATE TABLE IF NOT EXISTS employees (
     id VARCHAR(36) PRIMARY KEY DEFAULT uuid_generate_v4()::text,
     id_kependudukan VARCHAR(30) NOT NULL UNIQUE, -- No. KTP / NIK Kependudukan
@@ -53,18 +64,18 @@ CREATE TABLE IF NOT EXISTS employees (
     deleted_at TIMESTAMP WITH TIME ZONE
 );
 
--- Table 5: Inspections (Transaksi Utama Inspeksi Kendaraan)
+-- Table 6: Inspections (Transaksi Utama Inspeksi Kendaraan)
 CREATE TABLE IF NOT EXISTS inspections (
     id VARCHAR(36) PRIMARY KEY DEFAULT uuid_generate_v4()::text,
     vehicle_id VARCHAR(36) NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
     employee_id VARCHAR(36) REFERENCES employees(id) ON DELETE SET NULL,
-    status VARCHAR(30) DEFAULT 'inProgress', -- draft, inProgress, completed
+    status_id VARCHAR(36) REFERENCES inspection_statuses(id) ON DELETE SET NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP WITH TIME ZONE
 );
 
--- Table 6: Master Angle Captures (Master Data Sudut Pemindaian Standar)
+-- Table 7: Master Angle Captures (Master Data Sudut Pemindaian Standar)
 CREATE TABLE IF NOT EXISTS angle_captures (
     id VARCHAR(36) PRIMARY KEY DEFAULT uuid_generate_v4()::text,
     name VARCHAR(100) NOT NULL UNIQUE, -- Tampak Depan, Tampak Belakang, Tampak Samping, Tampak Atas
@@ -74,7 +85,7 @@ CREATE TABLE IF NOT EXISTS angle_captures (
     deleted_at TIMESTAMP WITH TIME ZONE
 );
 
--- Table 7: Inspection Photos (Penyimpanan Path / URL Foto Per Sudut Inspeksi)
+-- Table 8: Inspection Photos (Penyimpanan Path / URL Foto Per Sudut Inspeksi)
 CREATE TABLE IF NOT EXISTS inspection_photos (
     id VARCHAR(36) PRIMARY KEY DEFAULT uuid_generate_v4()::text,
     inspection_id VARCHAR(36) NOT NULL REFERENCES inspections(id) ON DELETE CASCADE,
@@ -85,7 +96,7 @@ CREATE TABLE IF NOT EXISTS inspection_photos (
     deleted_at TIMESTAMP WITH TIME ZONE
 );
 
--- Table 8: Damage Items (Hasil Inferensi YOLOv12 Per Foto Inspeksi)
+-- Table 9: Damage Items (Hasil Inferensi YOLOv12 Per Foto Inspeksi)
 CREATE TABLE IF NOT EXISTS damage_items (
     id VARCHAR(36) PRIMARY KEY DEFAULT uuid_generate_v4()::text,
     inspection_photo_id VARCHAR(36) NOT NULL REFERENCES inspection_photos(id) ON DELETE CASCADE,
@@ -103,6 +114,10 @@ ALTER TABLE damage_types ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME
 ALTER TABLE damage_types ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE damage_types ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE;
 
+ALTER TABLE inspection_statuses ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE inspection_statuses ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE inspection_statuses ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE;
+
 ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE;
@@ -117,6 +132,21 @@ ALTER TABLE employees ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZO
 ALTER TABLE employees ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE employees ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE;
 
+ALTER TABLE inspections ADD COLUMN IF NOT EXISTS status_id VARCHAR(36);
+ALTER TABLE inspections DROP COLUMN IF EXISTS status CASCADE;
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints 
+        WHERE constraint_name = 'fk_inspections_status'
+    ) THEN 
+        ALTER TABLE inspections 
+        ADD CONSTRAINT fk_inspections_status 
+        FOREIGN KEY (status_id) 
+        REFERENCES inspection_statuses(id) 
+        ON DELETE SET NULL;
+    END IF; 
+END $$;
 ALTER TABLE inspections ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE inspections ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE inspections ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE;
@@ -139,11 +169,12 @@ ALTER TABLE damage_items ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME
 
 -- Indexing untuk query cepat
 CREATE INDEX IF NOT EXISTS idx_damage_types_code ON damage_types(code);
+CREATE INDEX IF NOT EXISTS idx_inspection_statuses_code ON inspection_statuses(code);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_vehicles_user ON vehicles(user_id);
 CREATE INDEX IF NOT EXISTS idx_employees_id_kependudukan ON employees(id_kependudukan);
 CREATE INDEX IF NOT EXISTS idx_inspections_vehicle ON inspections(vehicle_id);
-CREATE INDEX IF NOT EXISTS idx_inspections_employee ON employees(id);
+CREATE INDEX IF NOT EXISTS idx_inspections_status_id ON inspections(status_id);
 CREATE INDEX IF NOT EXISTS idx_inspection_photos_inspection ON inspection_photos(inspection_id);
 CREATE INDEX IF NOT EXISTS idx_inspection_photos_angle_capture ON inspection_photos(angle_capture_id);
 CREATE INDEX IF NOT EXISTS idx_damage_items_inspection_photo ON damage_items(inspection_photo_id);
@@ -158,6 +189,15 @@ VALUES
     ('glass_shatter', 'Kaca Retak / Pecah', 'berat', 'Kerusakan kaca depan, kaca belakang, atau jendela samping'),
     ('lamp_broken', 'Lampu Pecah / Retak', 'berat', 'Kerusakan mika atau rumah lampu depan, rem, atau kabut'),
     ('tire_flat', 'Ban Kempes / Rusak', 'sedang', 'Kerusakan fisik, robek, atau ban bocor/kempes')
+ON CONFLICT (code) DO NOTHING;
+
+-- Master Seed Data: 4 Inspection Statuses
+INSERT INTO inspection_statuses (code, name, description)
+VALUES 
+    ('waiting', 'Menunggu Antrean', 'Inspeksi dalam antrean menunggu giliran pemindaian'),
+    ('inProgress', 'In Progress', 'Inspeksi kendaraan sedang berlangsung'),
+    ('completed', 'Selesai', 'Inspeksi kendaraan telah selesai dilakukan'),
+    ('failed', 'Gagal', 'Inspeksi kendaraan gagal atau dibatalkan')
 ON CONFLICT (code) DO NOTHING;
 
 -- Master Seed Data: Standard 4 Angle Captures

@@ -619,16 +619,24 @@ class _VehicleEntryDialogState extends State<VehicleEntryDialog> {
                   ),
                   items: const [
                     DropdownMenuItem(
-                      value: 'inProgress',
-                      child: Text('In Progress (Sedang Berjalan)'),
+                      value: 'waiting',
+                      child: Text('Menunggu Antrean'),
                     ),
                     DropdownMenuItem(
-                      value: 'draft',
-                      child: Text('Draft (Draf Simpan)'),
+                      value: 'inProgress',
+                      child: Text('In Progress'),
                     ),
                     DropdownMenuItem(
                       value: 'completed',
-                      child: Text('Completed (Selesai Inspeksi)'),
+                      child: Text('Selesai'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'failed',
+                      child: Text('Gagal'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'draft',
+                      child: Text('Draft'),
                     ),
                   ],
                   onChanged: (val) {

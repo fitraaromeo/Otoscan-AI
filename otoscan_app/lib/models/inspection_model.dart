@@ -119,9 +119,11 @@ class AngleCapture {
 }
 
 enum InspectionStatus {
-  draft('Draft'),
-  inProgress('Proses'),
-  completed('Selesai');
+  waiting('Menunggu Antrean'),
+  inProgress('In Progress'),
+  completed('Selesai'),
+  failed('Gagal'),
+  draft('Draft');
 
   final String label;
   const InspectionStatus(this.label);
@@ -135,6 +137,7 @@ class VehicleRecord {
   final String nopol; // e.g. B 1234 ABC
   final String ownerName; // e.g. Client / Owner Name
   final DateTime createdAt;
+  String? statusId;
   InspectionStatus status;
   final Map<ScanAngle, AngleCapture> angleCaptures;
   final String inspectorName;
@@ -147,6 +150,7 @@ class VehicleRecord {
     required this.nopol,
     required this.ownerName,
     required this.createdAt,
+    this.statusId,
     this.status = InspectionStatus.inProgress,
     Map<ScanAngle, AngleCapture>? angleCaptures,
     this.inspectorName = 'AI Inspector',

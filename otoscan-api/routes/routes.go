@@ -21,6 +21,10 @@ func SetupRoutes(app *fiber.App) {
 	master.Post("/angle-captures", handlers.CreateAngleCapture)
 	master.Delete("/angle-captures/:id", handlers.DeleteAngleCapture)
 
+	master.Get("/inspection-statuses", handlers.GetInspectionStatuses)
+	master.Post("/inspection-statuses", handlers.CreateInspectionStatus)
+	master.Delete("/inspection-statuses/:id", handlers.DeleteInspectionStatus)
+
 	// 2. Users / Pemilik Kendaraan Endpoints (/api/users)
 	users := api.Group("/users")
 	users.Get("/", handlers.GetUsers)

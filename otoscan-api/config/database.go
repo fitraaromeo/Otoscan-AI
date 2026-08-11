@@ -66,6 +66,7 @@ func ConnectDatabase() *gorm.DB {
 
 	// Auto-migrate tables (migrasi masing-masing model agar pembuatan tabel terjamin)
 	modelsToMigrate := []interface{}{
+		&models.InspectionStatus{},
 		&models.DamageType{},
 		&models.User{},
 		&models.Vehicle{},
@@ -84,6 +85,31 @@ func ConnectDatabase() *gorm.DB {
 
 	// Eksekusi SQL DDL langsung untuk memastikan tabel inspection_photos dan kolom damage_items dibuat di PostgreSQL
 	rawSQLMigration := `
+		CREATE TABLE IF NOT EXISTS inspection_statuses (
+			id VARCHAR(36) PRIMARY KEY,
+			code VARCHAR(50) UNIQUE NOT NULL,
+			name VARCHAR(100) NOT NULL,
+			description TEXT,
+			created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+			deleted_at TIMESTAMP WITH TIME ZONE
+		);
+		ALTER TABLE inspections ADD COLUMN IF NOT EXISTS status_id VARCHAR(36);
+		ALTER TABLE inspections DROP COLUMN IF EXISTS status CASCADE;
+		DO $$ 
+		BEGIN 
+			IF NOT EXISTS (
+				SELECT 1 FROM information_schema.table_constraints 
+				WHERE constraint_name = 'fk_inspections_status'
+			) THEN 
+				ALTER TABLE inspections 
+				ADD CONSTRAINT fk_inspections_status 
+				FOREIGN KEY (status_id) 
+				REFERENCES inspection_statuses(id) 
+				ON DELETE SET NULL;
+			END IF; 
+		END $$;
+		UPDATE inspections SET status_id = (SELECT id FROM inspection_statuses WHERE code = 'inProgress' LIMIT 1) WHERE status_id IS NULL;
 		CREATE TABLE IF NOT EXISTS inspection_photos (
 			id VARCHAR(36) PRIMARY KEY,
 			inspection_id VARCHAR(36) NOT NULL REFERENCES inspections(id) ON DELETE CASCADE,
@@ -110,6 +136,7 @@ func ConnectDatabase() *gorm.DB {
 		ALTER TABLE damage_items DROP COLUMN IF EXISTS inspection_id CASCADE;
 		ALTER TABLE damage_items DROP COLUMN IF EXISTS angle_capture_id CASCADE;
 		ALTER TABLE employees ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
+		CREATE INDEX IF NOT EXISTS idx_inspections_status_id ON inspections(status_id);
 		CREATE INDEX IF NOT EXISTS idx_inspection_photos_inspection ON inspection_photos(inspection_id);
 		CREATE INDEX IF NOT EXISTS idx_inspection_photos_angle_capture ON inspection_photos(angle_capture_id);
 		CREATE INDEX IF NOT EXISTS idx_damage_items_inspection_photo ON damage_items(inspection_photo_id);
@@ -118,10 +145,11 @@ func ConnectDatabase() *gorm.DB {
 	if err := db.Exec(rawSQLMigration).Error; err != nil {
 		log.Printf("⚠️ Raw SQL migration error: %v", err)
 	} else {
-		log.Println("✅ Tabel inspection_photos, damage_items & relasi PostgreSQL berhasil dipastikan!")
+		log.Println("✅ Tabel master inspection_statuses & relasi PostgreSQL berhasil dipastikan!")
 	}
 
 	// Seed Master Data
+	seedInspectionStatuses(db)
 	seedDamageTypes(db)
 	seedMasterAngleCaptures(db)
 	seedUsers(db)
@@ -195,5 +223,22 @@ func seedEmployees(db *gorm.DB) {
 			db.Create(&seed)
 		}
 		log.Println("🌱 Master Data Karyawan (Employees) berhasil dimasukkan ke PostgreSQL!")
+	}
+}
+
+func seedInspectionStatuses(db *gorm.DB) {
+	var count int64
+	db.Model(&models.InspectionStatus{}).Count(&count)
+	if count == 0 {
+		seeds := []models.InspectionStatus{
+			{ID: uuid.New().String(), Code: "waiting", Name: "Menunggu Antrean", Description: "Inspeksi dalam antrean menunggu giliran pemindaian", CreatedAt: time.Now(), UpdatedAt: time.Now()},
+			{ID: uuid.New().String(), Code: "inProgress", Name: "In Progress", Description: "Inspeksi kendaraan sedang berlangsung", CreatedAt: time.Now(), UpdatedAt: time.Now()},
+			{ID: uuid.New().String(), Code: "completed", Name: "Selesai", Description: "Inspeksi kendaraan telah selesai dilakukan", CreatedAt: time.Now(), UpdatedAt: time.Now()},
+			{ID: uuid.New().String(), Code: "failed", Name: "Gagal", Description: "Inspeksi kendaraan gagal atau dibatalkan", CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		}
+		for _, seed := range seeds {
+			db.Create(&seed)
+		}
+		log.Println("🌱 Master Data 4 Status Inspeksi (waiting, inProgress, completed, failed) berhasil dimasukkan ke PostgreSQL!")
 	}
 }

@@ -72,19 +72,38 @@ class AppState extends ChangeNotifier {
         inspector = json['employee']['name'].toString();
       }
 
-      InspectionStatus status = InspectionStatus.inProgress;
-      final statusStr = json['status']?.toString().toLowerCase() ?? '';
-      if (statusStr == 'completed') {
+      String? stId = json['statusId']?.toString();
+      if ((stId == null || stId.isEmpty) && json['inspectionStatus'] != null && json['inspectionStatus']['id'] != null) {
+        stId = json['inspectionStatus']['id'].toString();
+      }
+
+      InspectionStatus status = InspectionStatus.waiting;
+      String rawCode = '';
+      if (json['inspectionStatus'] != null && json['inspectionStatus']['code'] != null) {
+        rawCode = json['inspectionStatus']['code'].toString().toLowerCase();
+      } else if (json['inspectionStatus'] != null && json['inspectionStatus']['name'] != null) {
+        rawCode = json['inspectionStatus']['name'].toString().toLowerCase();
+      }
+
+      if (rawCode.contains('wait') || rawCode.contains('antrean') || rawCode.contains('menunggu')) {
+        status = InspectionStatus.waiting;
+      } else if (rawCode.contains('complet') || rawCode.contains('selesai')) {
         status = InspectionStatus.completed;
-      } else if (statusStr == 'draft') {
+      } else if (rawCode.contains('fail') || rawCode.contains('gagal')) {
+        status = InspectionStatus.failed;
+      } else if (rawCode.contains('draft')) {
         status = InspectionStatus.draft;
+      } else if (rawCode.contains('progress')) {
+        status = InspectionStatus.inProgress;
+      } else {
+        status = InspectionStatus.waiting;
       }
 
       DateTime createdAt = DateTime.now();
       final rawCreated = json['createdAt'] ?? json['created_at'];
       if (rawCreated != null) {
         try {
-          createdAt = DateTime.parse(rawCreated.toString());
+          createdAt = DateTime.parse(rawCreated.toString()).toLocal();
         } catch (_) {}
       }
 
@@ -97,6 +116,7 @@ class AppState extends ChangeNotifier {
         ownerName: owner,
         inspectorName: inspector,
         createdAt: createdAt,
+        statusId: stId,
         status: status,
       );
 

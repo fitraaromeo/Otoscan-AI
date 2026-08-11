@@ -689,14 +689,15 @@ class _StatMiniCard extends StatelessWidget {
 }
 
 String _formatDate(DateTime dt) {
-  final day = dt.day.toString().padLeft(2, '0');
+  final localDt = dt.toLocal();
+  final day = localDt.day.toString().padLeft(2, '0');
   const monthNames = [
     'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
     'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
   ];
-  final month = monthNames[dt.month - 1];
-  final year = dt.year;
-  final hour = dt.hour.toString().padLeft(2, '0');
-  final min = dt.minute.toString().padLeft(2, '0');
+  final month = monthNames[localDt.month - 1];
+  final year = localDt.year;
+  final hour = localDt.hour.toString().padLeft(2, '0');
+  final min = localDt.minute.toString().padLeft(2, '0');
   return '$day $month $year • $hour:$min WIB';
 }

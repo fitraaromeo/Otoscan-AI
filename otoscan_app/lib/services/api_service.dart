@@ -213,6 +213,22 @@ class ApiService {
     return [];
   }
 
+  /// Fetch list of master Inspection Statuses from Go Backend API (GET /api/master/inspection-statuses)
+  static Future<List<Map<String, dynamic>>> getInspectionStatuses() async {
+    try {
+      final url = Uri.parse('$baseUrl/master/inspection-statuses');
+      final response = await http.get(url).timeout(const Duration(seconds: 5));
+      if (response.statusCode == 200) {
+        final body = json.decode(response.body);
+        final List data = body['data'] ?? [];
+        return List<Map<String, dynamic>>.from(data);
+      }
+    } catch (e) {
+      debugPrint('⚠️ Error fetching master inspection statuses: $e');
+    }
+    return [];
+  }
+
   // --- Inspections & AI YOLOv12 API ---
 
   /// Fetch list of all Inspections from Go Backend API (GET /api/inspections)
@@ -239,6 +255,7 @@ class ApiService {
     String? tipe,
     String? jenis,
     String? employeeId,
+    String? statusId,
     String status = 'inProgress',
   }) async {
     try {
@@ -254,7 +271,8 @@ class ApiService {
               'tipe': tipe,
               'jenis': jenis,
               'employeeId': employeeId,
-              'status': status,
+              'statusId': statusId,
+              'status': statusId ?? status,
             }),
           )
           .timeout(const Duration(seconds: 8));

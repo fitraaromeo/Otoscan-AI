@@ -21,6 +21,7 @@ func CreateInspection(c *fiber.Ctx) error {
 		Tipe       string  `json:"tipe"`
 		Jenis      string  `json:"jenis"`
 		EmployeeID *string `json:"employeeId"`
+		StatusID   *string `json:"statusId"`
 		Status     string  `json:"status"`
 	}
 
@@ -72,25 +73,49 @@ func CreateInspection(c *fiber.Ctx) error {
 		statusVal = "inProgress"
 	}
 
+	var searchStatusStr string
+	if req.StatusID != nil && *req.StatusID != "" {
+		searchStatusStr = *req.StatusID
+	} else if req.Status != "" {
+		searchStatusStr = req.Status
+	}
+
+	var resolvedStatusID *string
+	if config.DB != nil && searchStatusStr != "" {
+		var st models.InspectionStatus
+		if err := config.DB.Where("id = ? OR code ILIKE ? OR name ILIKE ?", searchStatusStr, searchStatusStr, searchStatusStr).First(&st).Error; err == nil {
+			resolvedStatusID = &st.ID
+			statusVal = st.Code
+		}
+	}
+
 	newInspection := models.Inspection{
 		ID:         inspectionID,
 		VehicleID:  targetVehicleID,
 		EmployeeID: req.EmployeeID,
-		Status:     statusVal,
+		StatusID:   resolvedStatusID,
 		CreatedAt:  time.Now(),
 		UpdatedAt:  time.Now(),
 	}
 
 	if config.DB != nil {
-		config.DB.Create(&newInspection)
+		if err := config.DB.Create(&newInspection).Error; err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"status":  "error",
+				"message": "Gagal membuat data inspeksi: " + err.Error(),
+			})
+		}
 
 		// Reload full preloaded Inspection record
 		var loadedInspection models.Inspection
-		config.DB.Preload("Vehicle").
+		if err := config.DB.Preload("Vehicle").
 			Preload("Vehicle.User").
 			Preload("Employee").
+			Preload("InspectionStatus").
 			Preload("Photos").
-			First(&loadedInspection, "id = ?", inspectionID)
+			First(&loadedInspection, "id = ?", inspectionID).Error; err != nil {
+			loadedInspection = newInspection
+		}
 
 		if loadedInspection.Vehicle != nil {
 			PopulateUserVehicleCount(loadedInspection.Vehicle.User)
@@ -124,6 +149,7 @@ func GetInspections(c *fiber.Ctx) error {
 		config.DB.Preload("Vehicle").
 			Preload("Vehicle.User").
 			Preload("Employee").
+			Preload("InspectionStatus").
 			Preload("Photos").
 			Preload("Photos.AngleCapture").
 			Preload("Photos.Damages").
@@ -159,6 +185,7 @@ func GetInspectionByID(c *fiber.Ctx) error {
 		err := config.DB.Preload("Vehicle").
 			Preload("Vehicle.User").
 			Preload("Employee").
+			Preload("InspectionStatus").
 			Preload("Photos").
 			Preload("Photos.AngleCapture").
 			Preload("Photos.Damages").
