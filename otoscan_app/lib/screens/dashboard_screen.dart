@@ -108,9 +108,7 @@ class DashboardScreenState extends State<DashboardScreen> {
         }
 
         return Scaffold(
-          backgroundColor: isDark
-              ? AppColors.darkBackground
-              : AppColors.lightBackground,
+          backgroundColor: AppColors.darkBackground,
           appBar: AppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
@@ -120,14 +118,12 @@ class DashboardScreenState extends State<DashboardScreen> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color:
-                        (isDark ? AppColors.neonCyan : AppColors.lightPrimary)
-                            .withAlpha(35),
+                    color: AppColors.neonCyan.withAlpha(35),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Icons.document_scanner_rounded,
-                    color: isDark ? AppColors.neonCyan : AppColors.lightPrimary,
+                    color: AppColors.neonCyan,
                     size: 22,
                   ),
                 ),
@@ -184,12 +180,12 @@ class DashboardScreenState extends State<DashboardScreen> {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1B1F2D) : Colors.white,
+                      color: const Color(0xFF1B1F2D),
                       borderRadius: BorderRadius.circular(32),
                       border: Border.all(color: borderColor),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withAlpha(isDark ? 60 : 15),
+                          color: Colors.black.withAlpha(60),
                           blurRadius: 20,
                           offset: const Offset(0, 8),
                         ),
@@ -349,11 +345,9 @@ class DashboardScreenState extends State<DashboardScreen> {
                           color: textSecondary,
                           fontSize: 13,
                         ),
-                        prefixIcon: Icon(
+                        prefixIcon: const Icon(
                           Icons.search_rounded,
-                          color: isDark
-                              ? AppColors.neonCyan
-                              : AppColors.lightPrimary,
+                          color: AppColors.neonCyan,
                           size: 20,
                         ),
                         suffixIcon: _searchQuery.isNotEmpty
@@ -381,17 +375,13 @@ class DashboardScreenState extends State<DashboardScreen> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(30),
-                          borderSide: BorderSide(
-                            color: isDark
-                                ? AppColors.neonCyan
-                                : AppColors.lightPrimary,
+                          borderSide: const BorderSide(
+                            color: AppColors.neonCyan,
                             width: 1.5,
                           ),
                         ),
                         filled: true,
-                        fillColor: isDark
-                            ? AppColors.darkSurface
-                            : Colors.white,
+                        fillColor: AppColors.darkSurface,
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 12,
@@ -465,7 +455,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                             border: Border.all(color: borderColor),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withAlpha(isDark ? 30 : 8),
+                                color: Colors.black.withAlpha(30),
                                 blurRadius: 12,
                                 offset: const Offset(0, 4),
                               ),

@@ -118,7 +118,6 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = true; // Dark mode only
     const bgGradient = LinearGradient(
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
@@ -142,7 +141,7 @@ class _SplashScreenState extends State<SplashScreen>
                 height: 220,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppColors.primary.withAlpha(isDark ? 40 : 25),
+                  color: AppColors.primary.withAlpha(40),
                 ),
               ),
             ),
@@ -154,7 +153,7 @@ class _SplashScreenState extends State<SplashScreen>
                 height: 260,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppColors.accent.withAlpha(isDark ? 30 : 20),
+                  color: AppColors.accent.withAlpha(30),
                 ),
               ),
             ),
@@ -176,16 +175,14 @@ class _SplashScreenState extends State<SplashScreen>
                           height: 120,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: isDark
-                                ? const Color(0xFF1E293B)
-                                : Colors.white,
+                            color: const Color(0xFF1E293B),
                             border: Border.all(
                               color: AppColors.primary.withAlpha(120),
                               width: 2.5,
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: AppColors.primary.withAlpha(isDark ? 90 : 40),
+                                color: AppColors.primary.withAlpha(90),
                                 blurRadius: 30,
                                 spreadRadius: 4,
                               ),
@@ -294,9 +291,7 @@ class _SplashScreenState extends State<SplashScreen>
                                 height: 4,
                                 child: LinearProgressIndicator(
                                   value: _progressValue,
-                                  backgroundColor: isDark
-                                      ? Colors.white.withAlpha(20)
-                                      : Colors.black.withAlpha(15),
+                                  backgroundColor: Colors.white.withAlpha(20),
                                   valueColor: const AlwaysStoppedAnimation<Color>(
                                     AppColors.primary,
                                   ),
