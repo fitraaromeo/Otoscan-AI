@@ -82,25 +82,40 @@ class _VehicleScanScreenState extends State<VehicleScanScreen> with SingleTicker
 
   /// Capture Photo using Device Camera
   Future<void> _takeCameraPhoto() async {
-    if (!mounted) return;
-    showGeneralDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: 'CameraComingSoon',
-      barrierColor: Colors.black54,
-      transitionDuration: const Duration(milliseconds: 300),
-      transitionBuilder: (context, anim1, anim2, child) {
-        return Transform.scale(
-          scale: CurvedAnimation(parent: anim1, curve: Curves.easeOutBack).value,
-          child: FadeTransition(opacity: anim1, child: child),
-        );
-      },
-      pageBuilder: (context, anim1, anim2) {
-        return _CameraComingSoonDialog(
-          onOpenGallery: _pickGalleryPhoto,
-        );
-      },
-    );
+    try {
+      final XFile? photo = await _picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 90,
+        maxWidth: 1280,
+        maxHeight: 1280,
+      );
+
+      if (photo != null) {
+        final photoBytes = await photo.readAsBytes();
+        if (!mounted) return;
+        final appState = Provider.of<AppState>(context, listen: false);
+        final capture = appState.activeRecord?.angleCaptures[_currentAngle];
+        if (capture != null) {
+          capture.annotatedImageUrl = null;
+          capture.rawImageUrl = null;
+          capture.damages.clear();
+        }
+        PaintingBinding.instance.imageCache.clear();
+        PaintingBinding.instance.imageCache.clearLiveImages();
+
+        setState(() {
+          _capturedBytes[_currentAngle] = photoBytes;
+          if (!kIsWeb) {
+            _capturedPhotos[_currentAngle] = File(photo.path);
+          }
+        });
+        _runAIScan(customPhotoBytes: photoBytes, filePath: photo.path);
+      }
+    } catch (e) {
+      if (mounted) {
+        _pickGalleryPhoto();
+      }
+    }
   }
 
   /// Pick Photo from Device Gallery
@@ -121,7 +136,11 @@ class _VehicleScanScreenState extends State<VehicleScanScreen> with SingleTicker
         if (capture != null) {
           capture.annotatedImageUrl = null;
           capture.rawImageUrl = null;
+          capture.damages.clear();
         }
+        PaintingBinding.instance.imageCache.clear();
+        PaintingBinding.instance.imageCache.clearLiveImages();
+
         setState(() {
           _capturedBytes[_currentAngle] = photoBytes;
           if (!kIsWeb) {
@@ -396,14 +415,16 @@ class _VehicleScanScreenState extends State<VehicleScanScreen> with SingleTicker
                         fit: StackFit.expand,
                         children: [
                           // Base Photo or Wireframe Painter
-                          if (_capturedBytes[_currentAngle] != null && (_isScanning || currentCapture.annotatedImageUrl == null))
+                          if (_isScanning && _capturedBytes[_currentAngle] != null)
                             Image.memory(
                               _capturedBytes[_currentAngle]!,
+                              key: ValueKey('scanning_${_capturedBytes[_currentAngle]!.hashCode}'),
                               fit: BoxFit.cover,
                             )
                           else if (currentCapture.annotatedImageUrl != null && currentCapture.annotatedImageUrl!.isNotEmpty)
                             Image.network(
                               currentCapture.annotatedImageUrl!,
+                              key: ValueKey(currentCapture.annotatedImageUrl!),
                               fit: BoxFit.cover,
                               errorBuilder: (ctx, err, stack) => _capturedBytes[_currentAngle] != null
                                   ? Image.memory(_capturedBytes[_currentAngle]!, fit: BoxFit.cover)
@@ -412,14 +433,22 @@ class _VehicleScanScreenState extends State<VehicleScanScreen> with SingleTicker
                           else if (currentCapture.rawImageUrl != null && currentCapture.rawImageUrl!.isNotEmpty)
                             Image.network(
                               currentCapture.rawImageUrl!,
+                              key: ValueKey(currentCapture.rawImageUrl!),
                               fit: BoxFit.cover,
                               errorBuilder: (ctx, err, stack) => _capturedBytes[_currentAngle] != null
                                   ? Image.memory(_capturedBytes[_currentAngle]!, fit: BoxFit.cover)
                                   : VehiclePainterWidget(angle: _currentAngle, damages: currentCapture.damages),
                             )
+                          else if (_capturedBytes[_currentAngle] != null)
+                            Image.memory(
+                              _capturedBytes[_currentAngle]!,
+                              key: ValueKey('local_${_capturedBytes[_currentAngle]!.hashCode}'),
+                              fit: BoxFit.cover,
+                            )
                           else if (!kIsWeb && currentPhotoFile != null && currentPhotoFile.path.isNotEmpty)
                             Image.file(
                               currentPhotoFile,
+                              key: ValueKey(currentPhotoFile.path),
                               fit: BoxFit.cover,
                             )
                           else
@@ -436,106 +465,64 @@ class _VehicleScanScreenState extends State<VehicleScanScreen> with SingleTicker
                                   final cw = constraints.maxWidth;
                                   final ch = constraints.maxHeight;
 
-                                  return GestureDetector(
-                                    behavior: HitTestBehavior.translucent,
-                                    onTapUp: (details) {
-                                      final dx = details.localPosition.dx / cw;
-                                      final dy = details.localPosition.dy / ch;
-                                      _onTapCanvasAddDamage(dx, dy);
-                                    },
-                                    child: Stack(
-                                      children: [
-                                        ...currentCapture.damages.map((damage) {
-                                          final boxW = damage.widthRatio * cw;
-                                          final boxH = damage.heightRatio * ch;
-                                          final boxX = (damage.xRatio * cw) - (boxW / 2);
-                                          final boxY = (damage.yRatio * ch) - (boxH / 2);
+                                  return Stack(
+                                    children: [
+                                      ...currentCapture.damages.map((damage) {
+                                        final boxW = damage.widthRatio * cw;
+                                        final boxH = damage.heightRatio * ch;
+                                        final boxX = (damage.xRatio * cw) - (boxW / 2);
+                                        final boxY = (damage.yRatio * ch) - (boxH / 2);
 
-                                          Color boxColor = AppColors.neonPink;
-                                          if (damage.severity == DamageSeverity.berat) {
-                                            boxColor = AppColors.danger;
-                                          } else if (damage.severity == DamageSeverity.ringan) {
-                                            boxColor = AppColors.neonCyan;
-                                          }
+                                        Color boxColor = AppColors.neonPink;
+                                        if (damage.severity == DamageSeverity.berat) {
+                                          boxColor = AppColors.danger;
+                                        } else if (damage.severity == DamageSeverity.ringan) {
+                                          boxColor = AppColors.neonCyan;
+                                        }
 
-                                          return Positioned(
-                                            left: boxX.clamp(0.0, cw - boxW),
-                                            top: boxY.clamp(0.0, ch - boxH),
-                                            width: boxW.clamp(30.0, cw),
-                                            height: boxH.clamp(20.0, ch),
-                                            child: Container(
-                                              decoration: BoxDecoration(
-                                                color: boxColor.withAlpha(45),
-                                                border: Border.all(color: boxColor, width: 2),
-                                                borderRadius: BorderRadius.circular(8),
-                                              ),
-                                              child: Stack(
-                                                children: [
-                                                  Positioned(
-                                                    top: 2,
-                                                    left: 4,
-                                                    child: Container(
-                                                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                                      decoration: BoxDecoration(
-                                                        color: Colors.black.withAlpha(200),
-                                                        borderRadius: BorderRadius.circular(4),
-                                                      ),
-                                                      child: Text(
-                                                        '${damage.type} ${(damage.confidence * 100).toInt()}%',
-                                                        style: TextStyle(
-                                                          fontSize: 9,
-                                                          fontWeight: FontWeight.bold,
-                                                          color: boxColor,
-                                                          letterSpacing: 0.5,
-                                                        ),
+                                        return Positioned(
+                                          left: boxX.clamp(0.0, cw - boxW),
+                                          top: boxY.clamp(0.0, ch - boxH),
+                                          width: boxW.clamp(30.0, cw),
+                                          height: boxH.clamp(20.0, ch),
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              color: boxColor.withAlpha(45),
+                                              border: Border.all(color: boxColor, width: 2),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: Stack(
+                                              children: [
+                                                Positioned(
+                                                  top: 2,
+                                                  left: 4,
+                                                  child: Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.black.withAlpha(200),
+                                                      borderRadius: BorderRadius.circular(4),
+                                                    ),
+                                                    child: Text(
+                                                      '${damage.type} ${(damage.confidence * 100).toInt()}%',
+                                                      style: TextStyle(
+                                                        fontSize: 9,
+                                                        fontWeight: FontWeight.bold,
+                                                        color: boxColor,
+                                                        letterSpacing: 0.5,
                                                       ),
                                                     ),
                                                   ),
-                                                ],
-                                              ),
+                                                ),
+                                              ],
                                             ),
-                                          );
-                                        }),
-                                      ],
-                                    ),
+                                          ),
+                                        );
+                                      }),
+                                    ],
                                   );
                                 },
                               ),
                             ),
-
-                          // Top-Center Floating Glass Instruction Pill
-                          Positioned(
-                            top: 14,
-                            left: 0,
-                            right: 0,
-                            child: Center(
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withAlpha(190),
-                                  borderRadius: BorderRadius.circular(30),
-                                  border: Border.all(color: AppColors.neonCyan.withAlpha(80)),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withAlpha(60),
-                                      blurRadius: 10,
-                                    ),
-                                  ],
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.touch_app_rounded, color: AppColors.neonCyan, size: 14),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      hasPhoto ? 'Foto Kamera • Tap Foto untuk Tambah Pin' : 'Blueprint Visual • Tap Bodi untuk Pin Manual',
-                                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
 
                           // Central Friendly Glass Card when No Photo Uploaded yet
                           if (!hasPhoto)
@@ -567,7 +554,7 @@ class _VehicleScanScreenState extends State<VehicleScanScreen> with SingleTicker
                                     ),
                                     const SizedBox(height: 10),
                                     Text(
-                                      'Belum Ada Foto Sisi ${_currentAngle.label}',
+                                      'No Photo for ${_currentAngle.label} Side',
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.bold,
@@ -576,7 +563,7 @@ class _VehicleScanScreenState extends State<VehicleScanScreen> with SingleTicker
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      'Gunakan Real-Time Camera atau Upload Photo untuk analisa kerusakan YOLO AI otomatis.',
+                                      'Use Real-Time Camera or Upload Photo for automatic YOLO AI damage analysis.',
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                         fontSize: 11,

@@ -1,4 +1,4 @@
-﻿package handlers
+package handlers
 
 import (
 	"bytes"
@@ -117,22 +117,66 @@ func DetectDamageYOLOv12(c *fiber.Ctx) error {
 			if err := config.DB.First(&ac, "id = ?", angleCaptureID).Error; err == nil && ac.Name != "" {
 				angleNameStr = ac.Name
 			}
-		} else if angleName != "" {
+		}
+
+		if angleCaptureID == "" && angleName != "" {
+			lower := strings.ToLower(angleName)
 			var ac models.AngleCapture
-			if err := config.DB.Where("name ILIKE ?", "%"+angleName+"%").First(&ac).Error; err == nil {
-				angleCaptureID = ac.ID
-				angleNameStr = ac.Name
+
+			if strings.Contains(lower, "depan") || strings.Contains(lower, "front") {
+				if err := config.DB.Where("name ILIKE ?", "%depan%").First(&ac).Error; err == nil {
+					angleCaptureID = ac.ID
+					angleNameStr = ac.Name
+				}
+			} else if strings.Contains(lower, "belakang") || strings.Contains(lower, "rear") || strings.Contains(lower, "back") {
+				if err := config.DB.Where("name ILIKE ?", "%belakang%").First(&ac).Error; err == nil {
+					angleCaptureID = ac.ID
+					angleNameStr = ac.Name
+				}
+			} else if strings.Contains(lower, "kanan") || strings.Contains(lower, "right") {
+				if err := config.DB.Where("name ILIKE ?", "%kanan%").First(&ac).Error; err == nil {
+					angleCaptureID = ac.ID
+					angleNameStr = ac.Name
+				} else if err := config.DB.Where("name ILIKE ?", "%samping%").First(&ac).Error; err == nil {
+					angleCaptureID = ac.ID
+					angleNameStr = ac.Name
+				}
+			} else if strings.Contains(lower, "kiri") || strings.Contains(lower, "left") {
+				if err := config.DB.Where("name ILIKE ?", "%kiri%").First(&ac).Error; err == nil {
+					angleCaptureID = ac.ID
+					angleNameStr = ac.Name
+				} else if err := config.DB.Where("name ILIKE ?", "%samping%").First(&ac).Error; err == nil {
+					angleCaptureID = ac.ID
+					angleNameStr = ac.Name
+				}
+			} else if strings.Contains(lower, "samping") || strings.Contains(lower, "side") {
+				if err := config.DB.Where("name ILIKE ?", "%samping%").First(&ac).Error; err == nil {
+					angleCaptureID = ac.ID
+					angleNameStr = ac.Name
+				}
+			} else if strings.Contains(lower, "atas") || strings.Contains(lower, "top") || strings.Contains(lower, "roof") {
+				if err := config.DB.Where("name ILIKE ?", "%atas%").First(&ac).Error; err == nil {
+					angleCaptureID = ac.ID
+					angleNameStr = ac.Name
+				}
+			}
+
+			if angleCaptureID == "" {
+				if err := config.DB.Where("name ILIKE ?", "%"+angleName+"%").First(&ac).Error; err == nil {
+					angleCaptureID = ac.ID
+					angleNameStr = ac.Name
+				}
 			}
 		}
-	}
 
-	// Fallback to first master angle if still empty
-	if config.DB != nil && angleCaptureID == "" {
-		var ac models.AngleCapture
-		if err := config.DB.Order("created_at asc").First(&ac).Error; err == nil {
-			angleCaptureID = ac.ID
-			if angleNameStr == "" {
-				angleNameStr = ac.Name
+		// Fallback to first master angle if still empty
+		if angleCaptureID == "" {
+			var ac models.AngleCapture
+			if err := config.DB.Order("created_at asc").First(&ac).Error; err == nil {
+				angleCaptureID = ac.ID
+				if angleNameStr == "" {
+					angleNameStr = ac.Name
+				}
 			}
 		}
 	}
@@ -145,9 +189,9 @@ func DetectDamageYOLOv12(c *fiber.Ctx) error {
 		ext = ".jpg"
 	}
 
-	// Format: angle_firstclientname_shortid.ext (e.g. depan_fitra_0d871803.jpg)
-	fileName := fmt.Sprintf("%s_%s_%s%s", cleanAngle, cleanClient, shortID, ext)
-	resultFileName := fmt.Sprintf("result_%s_%s_%s%s", cleanAngle, cleanClient, shortID, ext)
+	ts := time.Now().UnixMilli()
+	fileName := fmt.Sprintf("%s_%s_%s_%d%s", cleanAngle, cleanClient, shortID, ts, ext)
+	resultFileName := fmt.Sprintf("result_%s_%s_%s_%d%s", cleanAngle, cleanClient, shortID, ts, ext)
 
 	// Simpan file foto fisik ke direktori ./uploads/inspections/
 	uploadDir := "./uploads/inspections"
@@ -156,7 +200,34 @@ func DetectDamageYOLOv12(c *fiber.Ctx) error {
 	publicURLPath := fmt.Sprintf("/uploads/inspections/%s", fileName)
 
 	if err := c.SaveFile(fileHeader, localFilePath); err != nil {
-		fmt.Printf("âš ï¸ Gagal menyimpan file gambar ke disk: %v\n", err)
+		fmt.Printf("⚠️ Gagal menyimpan file gambar ke disk: %v\n", err)
+	}
+
+	// Clean up any previous physical photo files & records for this same inspection and angle to free up storage
+	if config.DB != nil && angleCaptureID != "" {
+		var oldPhotos []models.InspectionPhoto
+		if err := config.DB.Preload("Damages").Where("inspection_id = ? AND angle_capture_id = ?", inspectionID, angleCaptureID).Find(&oldPhotos).Error; err == nil {
+			for _, oldPhoto := range oldPhotos {
+				// Delete physical raw image file from disk
+				if oldPhoto.ImagePath != "" {
+					cleanPath := strings.TrimPrefix(oldPhoto.ImagePath, "/")
+					_ = os.Remove("." + oldPhoto.ImagePath)
+					_ = os.Remove(cleanPath)
+				}
+
+				// Delete physical annotated damage image files from disk
+				for _, d := range oldPhoto.Damages {
+					if d.AnnotatedImagePath != "" && d.AnnotatedImagePath != oldPhoto.ImagePath {
+						cleanAnnPath := strings.TrimPrefix(d.AnnotatedImagePath, "/")
+						_ = os.Remove("." + d.AnnotatedImagePath)
+						_ = os.Remove(cleanAnnPath)
+					}
+					config.DB.Delete(&models.DamageItem{}, "id = ?", d.ID)
+				}
+
+				config.DB.Delete(&models.InspectionPhoto{}, "id = ?", oldPhoto.ID)
+			}
+		}
 	}
 
 	// Simpan record foto ke tabel inspection_photos
@@ -181,7 +252,7 @@ func DetectDamageYOLOv12(c *fiber.Ctx) error {
 	// Call Python YOLOv12 Microservice with custom result filename
 	yoloResult, err := callYOLOv12Service(aiServiceURL, fileHeader.Filename, fileBytes, resultFileName)
 	if err != nil {
-		logError := fmt.Sprintf("âš ï¸ YOLOv12 AI Service offline / error: %v", err)
+		logError := fmt.Sprintf("⚠️ YOLOv12 AI Service offline / error: %v", err)
 		fmt.Println(logError)
 	}
 
@@ -289,7 +360,6 @@ func callYOLOv12Service(url string, filename string, fileBytes []byte, outputFil
 
 	return &result, nil
 }
-
 
 // DetectDamagePreview runs YOLOv12 on the uploaded frame and returns predictions without saving to database
 func DetectDamagePreview(c *fiber.Ctx) error {

@@ -81,7 +81,7 @@ class InspectionDetailScreen extends StatelessWidget {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                'Pemilik: ${currentRecord.ownerName}',
+                                'Owner: ${currentRecord.ownerName}',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
@@ -274,37 +274,13 @@ class InspectionDetailScreen extends StatelessWidget {
                 itemBuilder: (context, index) {
                   final damage = allDamages[index];
 
-                  Color badgeColor = AppColors.warning;
-                  if (damage.severity == DamageSeverity.berat) {
-                    badgeColor = AppColors.danger;
-                  } else if (damage.severity == DamageSeverity.ringan) {
-                    badgeColor = AppColors.info;
-                  }
-
                   return Card(
                     child: ListTile(
                       leading: CircleAvatar(
-                        backgroundColor: badgeColor.withAlpha(38),
-                        child: Icon(Icons.build_outlined, color: badgeColor),
+                        backgroundColor: AppColors.danger.withAlpha(38),
+                        child: const Icon(Icons.build_outlined, color: AppColors.danger),
                       ),
-                      title: Row(
-                        children: [
-                          Text(damage.type, style: const TextStyle(fontWeight: FontWeight.bold)),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: badgeColor.withAlpha(38),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: badgeColor),
-                            ),
-                            child: Text(
-                              damage.severity.label,
-                              style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: badgeColor),
-                            ),
-                          ),
-                        ],
-                      ),
+                      title: Text(damage.type, style: const TextStyle(fontWeight: FontWeight.bold)),
                       subtitle: Text('${damage.angle.label} Side • ${damage.description}'),
                     ),
                   );
@@ -359,7 +335,7 @@ class InspectionDetailScreen extends StatelessWidget {
                 },
                 icon: const Icon(Icons.delete_forever_rounded, size: 20),
                 label: const Text(
-                  'Hapus Data Inspeksi Ini',
+                  'Delete Inspection Record',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,

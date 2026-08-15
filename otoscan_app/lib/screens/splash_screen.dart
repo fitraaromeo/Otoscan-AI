@@ -21,7 +21,7 @@ class _SplashScreenState extends State<SplashScreen>
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
 
-  String _statusMessage = 'Mempersiapkan AI Engine...';
+  String _statusMessage = 'Initializing AI Engine...';
   double _progressValue = 0.15;
 
   @override
@@ -70,7 +70,7 @@ class _SplashScreenState extends State<SplashScreen>
     Timer(const Duration(milliseconds: 800), () {
       if (mounted) {
         setState(() {
-          _statusMessage = 'Menghubungkan ke AI Server...';
+          _statusMessage = 'Connecting to AI Server...';
           _progressValue = 0.55;
         });
       }
@@ -79,7 +79,7 @@ class _SplashScreenState extends State<SplashScreen>
     Timer(const Duration(milliseconds: 1800), () {
       if (mounted) {
         setState(() {
-          _statusMessage = 'Sistem Siap';
+          _statusMessage = 'System Ready';
           _progressValue = 1.0;
         });
       }
@@ -118,23 +118,15 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgGradient = isDark
-        ? const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF0F172A), Color(0xFF0B0F19)],
-          )
-        : const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFF8FAFC), Color(0xFFE2E8F0)],
-          );
+    final isDark = true; // Dark mode only
+    const bgGradient = LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFF070C18), Color(0xFF0C1221)],
+    );
 
-    final textPrimary = isDark ? Colors.white : AppColors.lightTextPrimary;
-    final textSecondary = isDark
-        ? AppColors.darkTextSecondary
-        : AppColors.lightTextSecondary;
+    final textPrimary = AppColors.darkTextPrimary;
+    final textSecondary = AppColors.darkTextSecondary;
 
     return Scaffold(
       body: Container(
@@ -279,7 +271,7 @@ class _SplashScreenState extends State<SplashScreen>
                       const SizedBox(height: 8),
 
                       Text(
-                        'Inspeksi Kerusakan Kendaraan Berbasis AI',
+                        'AI-Powered Vehicle Damage Detection',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,

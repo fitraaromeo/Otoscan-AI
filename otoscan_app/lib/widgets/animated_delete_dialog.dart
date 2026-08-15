@@ -89,7 +89,7 @@ class _AnimatedDeleteDialogState extends State<AnimatedDeleteDialog>
           _isDeleting = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('❌ Gagal menghapus inspeksi')),
+          const SnackBar(content: Text('❌ Failed to delete inspection')),
         );
         Navigator.of(context).pop();
       }
@@ -141,7 +141,7 @@ class _AnimatedDeleteDialogState extends State<AnimatedDeleteDialog>
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  'Menghapus Data Inspeksi...',
+                  'Deleting Inspection Data...',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
@@ -150,7 +150,7 @@ class _AnimatedDeleteDialogState extends State<AnimatedDeleteDialog>
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Menghapus dari database backend & storage',
+                  'Removing from backend database & storage',
                   style: TextStyle(fontSize: 12, color: textSecondary),
                 ),
                 const SizedBox(height: 16),
@@ -181,7 +181,7 @@ class _AnimatedDeleteDialogState extends State<AnimatedDeleteDialog>
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  'Inspeksi Berhasil Dihapus',
+                  'Inspection Successfully Deleted',
                   style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.bold,
@@ -190,7 +190,7 @@ class _AnimatedDeleteDialogState extends State<AnimatedDeleteDialog>
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Data kendaraan ${widget.nopol} telah dibersihkan.',
+                  'Vehicle ${widget.nopol} data has been cleared.',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 12, color: textSecondary),
                 ),
@@ -211,7 +211,7 @@ class _AnimatedDeleteDialogState extends State<AnimatedDeleteDialog>
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Hapus Laporan Inspeksi?',
+                  'Delete Inspection Report?',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -220,7 +220,7 @@ class _AnimatedDeleteDialogState extends State<AnimatedDeleteDialog>
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Apakah Anda yakin ingin menghapus inspeksi kendaraan ${widget.nopol}? Data akan dihapus permanen.',
+                  'Are you sure you want to delete inspection for vehicle ${widget.nopol}? This action is permanent and cannot be undone.',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 12.5, color: textSecondary),
                 ),
@@ -241,7 +241,7 @@ class _AnimatedDeleteDialogState extends State<AnimatedDeleteDialog>
                             ),
                             shape: const StadiumBorder(),
                           ),
-                          child: const Text('Batal',
+                          child: const Text('Cancel',
                               style: TextStyle(fontWeight: FontWeight.bold)),
                         ),
                       ),
@@ -255,7 +255,7 @@ class _AnimatedDeleteDialogState extends State<AnimatedDeleteDialog>
                           icon: const Icon(Icons.delete_forever_rounded,
                               size: 18),
                           label: const Text(
-                            'Hapus',
+                            'Delete',
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                           style: ElevatedButton.styleFrom(

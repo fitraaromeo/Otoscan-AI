@@ -73,15 +73,11 @@ class DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textPrimary = isDark ? Colors.white : AppColors.lightTextPrimary;
-    final textSecondary = isDark
-        ? AppColors.darkTextSecondary
-        : AppColors.lightTextSecondary;
-    final cardBg = isDark ? AppColors.darkSurface : Colors.white;
-    final borderColor = isDark
-        ? Colors.white.withAlpha(20)
-        : Colors.black.withAlpha(12);
+    final isDark = true; // Dark mode only
+    final textPrimary = AppColors.darkTextPrimary;
+    final textSecondary = AppColors.darkTextSecondary;
+    final cardBg = AppColors.darkSurfaceCard;
+    final borderColor = AppColors.darkBorderDivider;
 
     return Consumer<AppState>(
       builder: (context, appState, child) {
@@ -165,22 +161,8 @@ class DashboardScreenState extends State<DashboardScreen> {
                 ),
               ],
             ),
-            actions: [
-              IconButton(
-                icon: Icon(
-                  isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-                  color: isDark
-                      ? AppColors.darkTextPrimary
-                      : AppColors.lightPrimaryAccent,
-                ),
-                onPressed: () {
-                  appState.toggleTheme();
-                },
-                tooltip: isDark
-                    ? 'Switch to Light Mode'
-                    : 'Switch to Dark Mode',
-              ),
-              const SizedBox(width: 8),
+            actions: const [
+              SizedBox(width: 8),
             ],
           ),
           body: RefreshIndicator(
@@ -267,7 +249,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                               size: 22,
                             ),
                             label: const Text(
-                              'Tambah Inspeksi',
+                              'New Inspection',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
@@ -362,7 +344,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                         });
                       },
                       decoration: InputDecoration(
-                        hintText: 'Cari Nopol, Merk, Tipe, Pemilik, atau ID...',
+                        hintText: 'Search plate, make, model, owner, or ID...',
                         hintStyle: TextStyle(
                           color: textSecondary,
                           fontSize: 13,
@@ -440,8 +422,8 @@ class DashboardScreenState extends State<DashboardScreen> {
                           const SizedBox(height: 12),
                           Text(
                             _searchQuery.isNotEmpty
-                                ? 'Tidak ada inspeksi yang cocok dengan "$_searchQuery"'
-                                : 'Belum ada riwayat inspeksi',
+                                ? 'No inspections matching "$_searchQuery"'
+                                : 'No inspection history yet',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 14,
@@ -459,7 +441,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                                 });
                               },
                               icon: const Icon(Icons.refresh_rounded, size: 16),
-                              label: const Text('Reset Pencarian'),
+                              label: const Text('Reset Search'),
                             ),
                           ],
                         ],
@@ -692,12 +674,12 @@ String _formatDate(DateTime dt) {
   final localDt = dt.toLocal();
   final day = localDt.day.toString().padLeft(2, '0');
   const monthNames = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
-    'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
   ];
   final month = monthNames[localDt.month - 1];
   final year = localDt.year;
   final hour = localDt.hour.toString().padLeft(2, '0');
   final min = localDt.minute.toString().padLeft(2, '0');
-  return '$day $month $year • $hour:$min WIB';
+  return '$day $month $year • $hour:$min';
 }

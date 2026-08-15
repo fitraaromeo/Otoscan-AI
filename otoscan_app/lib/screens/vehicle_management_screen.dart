@@ -255,8 +255,18 @@ class VehicleManagementScreenState extends State<VehicleManagementScreen> {
         child: FloatingActionButton.extended(
           heroTag: 'vehicle_fab',
           onPressed: () => _showAddOrEditVehicleDialog(),
-          icon: const Icon(Icons.add_a_photo_rounded),
-          label: const Text('Add Vehicle'),
+          backgroundColor: AppColors.primary,
+          elevation: 6,
+          icon: const Icon(Icons.add_a_photo_rounded, color: Colors.white, size: 20),
+          label: const Text(
+            'Add Vehicle',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+              letterSpacing: 0.5,
+            ),
+          ),
         ),
       ),
       body: Column(
@@ -303,64 +313,116 @@ class VehicleManagementScreenState extends State<VehicleManagementScreen> {
                               final v = filteredVehicles[index];
                               final owner = v['user'] as Map<String, dynamic>?;
 
-                              return Card(
+                              return Container(
                                 margin: const EdgeInsets.only(bottom: 12),
-                                child: ListTile(
-                                  leading: Container(
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.primary.withAlpha(20),
-                                      borderRadius: BorderRadius.circular(14),
+                                decoration: BoxDecoration(
+                                  color: AppColors.darkSurfaceCard,
+                                  borderRadius: BorderRadius.circular(28),
+                                  border: Border.all(color: AppColors.darkBorderDivider),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withAlpha(30),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 4),
                                     ),
-                                    child: const Icon(Icons.directions_car_filled_rounded, color: AppColors.primary),
-                                  ),
-                                  title: Row(
-                                    children: [
-                                      Text(
-                                        v['nopol'] ?? '-',
-                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                  ],
+                                ),
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(28),
+                                    onTap: () => _showAddOrEditVehicleDialog(existingVehicle: v),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(16),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            width: 48,
+                                            height: 48,
+                                            decoration: BoxDecoration(
+                                              color: AppColors.primary.withAlpha(25),
+                                              borderRadius: BorderRadius.circular(16),
+                                            ),
+                                            child: const Icon(
+                                              Icons.directions_car_filled_rounded,
+                                              color: AppColors.primary,
+                                              size: 24,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 14),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Row(
+                                                  children: [
+                                                    Text(
+                                                      v['nopol'] ?? '-',
+                                                      style: const TextStyle(
+                                                        fontSize: 16,
+                                                        fontWeight: FontWeight.bold,
+                                                        color: AppColors.darkTextPrimary,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                                      decoration: BoxDecoration(
+                                                        color: AppColors.primary.withAlpha(20),
+                                                        borderRadius: BorderRadius.circular(8),
+                                                      ),
+                                                      child: Text(
+                                                        v['jenis'] ?? 'SUV',
+                                                        style: const TextStyle(
+                                                          fontSize: 11,
+                                                          fontWeight: FontWeight.bold,
+                                                          color: AppColors.primary,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  '${v['merk'] ?? '-'} ${v['tipe'] ?? ''}',
+                                                  style: const TextStyle(
+                                                    fontSize: 12,
+                                                    color: AppColors.darkTextSecondary,
+                                                  ),
+                                                ),
+                                                if (owner != null && owner['name'] != null) ...[
+                                                  const SizedBox(height: 2),
+                                                  Text(
+                                                    'Owner: ${owner['name']}',
+                                                    style: const TextStyle(
+                                                      fontSize: 11,
+                                                      color: AppColors.primary,
+                                                      fontWeight: FontWeight.w500,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ],
+                                            ),
+                                          ),
+                                          Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              IconButton(
+                                                icon: const Icon(Icons.edit_rounded, color: AppColors.primary, size: 20),
+                                                tooltip: 'Edit Vehicle',
+                                                onPressed: () => _showAddOrEditVehicleDialog(existingVehicle: v),
+                                              ),
+                                              IconButton(
+                                                icon: const Icon(Icons.delete_outline_rounded, color: AppColors.danger, size: 20),
+                                                tooltip: 'Delete Vehicle',
+                                                onPressed: () => _confirmDeleteVehicle(v),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
                                       ),
-                                      const SizedBox(width: 8),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.primary.withAlpha(20),
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                        child: Text(
-                                          v['jenis'] ?? 'SUV',
-                                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
-                                        ),
-                                      ),
-                                    ],
+                                    ),
                                   ),
-                                  subtitle: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text('${v['merk'] ?? '-'} ${v['tipe'] ?? ''}'),
-                                      if (owner != null && owner['name'] != null)
-                                        Text(
-                                          '👤 Owner: ${owner['name']}',
-                                          style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w500),
-                                        ),
-                                    ],
-                                  ),
-                                  trailing: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      IconButton(
-                                        icon: const Icon(Icons.edit_rounded, color: AppColors.primary, size: 20),
-                                        tooltip: 'Edit Vehicle',
-                                        onPressed: () => _showAddOrEditVehicleDialog(existingVehicle: v),
-                                      ),
-                                      IconButton(
-                                        icon: const Icon(Icons.delete_outline_rounded, color: AppColors.danger, size: 20),
-                                        tooltip: 'Delete Vehicle',
-                                        onPressed: () => _confirmDeleteVehicle(v),
-                                      ),
-                                    ],
-                                  ),
-                                  isThreeLine: true,
                                 ),
                               );
                             },

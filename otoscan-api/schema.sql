@@ -200,12 +200,14 @@ VALUES
     ('failed', 'Gagal', 'Inspeksi kendaraan gagal atau dibatalkan')
 ON CONFLICT (code) DO NOTHING;
 
--- Master Seed Data: Standard 4 Angle Captures
+-- Master Seed Data: Standard Angle Captures
 INSERT INTO angle_captures (name, description)
 VALUES
     ('Tampak Depan', 'Pindai bumper, kap mesin, kaca depan & lampu utama'),
     ('Tampak Belakang', 'Pindai bagasi, bumper belakang & lampu rem'),
-    ('Tampak Samping', 'Pindai pintu, spion, bodi samping & velg'),
+    ('Tampak Kanan', 'Pindai pintu, spion, bodi & roda kanan'),
+    ('Tampak Kiri', 'Pindai pintu, spion, bodi & roda kiri'),
+    ('Tampak Samping', 'Pindai bodi samping & velg'),
     ('Tampak Atas', 'Pindai atap kendaraan & panoramic roof')
 ON CONFLICT (name) DO NOTHING;
 

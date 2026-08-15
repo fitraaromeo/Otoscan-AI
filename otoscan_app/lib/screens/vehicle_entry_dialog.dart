@@ -125,7 +125,7 @@ class _VehicleEntryDialogState extends State<VehicleEntryDialog> {
             final jenis = item['jenis']?.toString() ?? 'Car';
             final owner = (item['user'] != null && item['user']['name'] != null)
                 ? item['user']['name'].toString()
-                : 'Tanpa Pemilik';
+                : 'No Owner';
             final isSelected = id == _selectedVehicleId;
 
             return ListTile(
@@ -146,7 +146,7 @@ class _VehicleEntryDialogState extends State<VehicleEntryDialog> {
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
               ),
               subtitle: Text(
-                'Pemilik: $owner • Jenis: $jenis',
+                'Owner: $owner • Type: $jenis',
                 style: const TextStyle(fontSize: 11.5),
               ),
               trailing: isSelected ? const Icon(Icons.check_circle_rounded, color: AppColors.success) : null,
@@ -204,7 +204,7 @@ class _VehicleEntryDialogState extends State<VehicleEntryDialog> {
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
               ),
               subtitle: Text(
-                code.isNotEmpty ? 'Kode: $code' : 'Staff Inspector',
+                code.isNotEmpty ? 'Code: $code' : 'Staff Inspector',
                 style: const TextStyle(fontSize: 11.5),
               ),
               trailing: isSelected ? const Icon(Icons.check_circle_rounded, color: AppColors.success) : null,
@@ -226,9 +226,9 @@ class _VehicleEntryDialogState extends State<VehicleEntryDialog> {
 
     if (_isManualVehicleEntry) {
       setState(() {
-        _merkError = _merkController.text.trim().isEmpty ? 'Merk kendaraan wajib diisi' : null;
-        _jenisError = _jenisController.text.trim().isEmpty ? 'Tipe / varian wajib diisi' : null;
-        _nopolError = _nopolController.text.trim().isEmpty ? 'Nopol kendaraan wajib diisi' : null;
+        _merkError = _merkController.text.trim().isEmpty ? 'Vehicle make is required' : null;
+        _jenisError = _jenisController.text.trim().isEmpty ? 'Model / variant is required' : null;
+        _nopolError = _nopolController.text.trim().isEmpty ? 'License plate is required' : null;
       });
       if (_merkError != null || _jenisError != null || _nopolError != null) return;
     }
@@ -391,7 +391,7 @@ class _VehicleEntryDialogState extends State<VehicleEntryDialog> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'PILIH KENDARAAN (VEHICLE) *',
+                      'VEHICLE SELECTION *',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
@@ -406,7 +406,7 @@ class _VehicleEntryDialogState extends State<VehicleEntryDialog> {
                         });
                       },
                       child: Text(
-                        _isManualVehicleEntry ? '← Cari Master Data' : '+ Input Baru',
+                        _isManualVehicleEntry ? '← Search Master Data' : '+ Manual Entry',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
@@ -442,7 +442,7 @@ class _VehicleEntryDialogState extends State<VehicleEntryDialog> {
                                     overflow: TextOverflow.ellipsis,
                                   )
                                 : Text(
-                                    'Cari Kendaraan...',
+                                    'Search Vehicle...',
                                     style: TextStyle(color: textSecondary, fontSize: 13),
                                   ),
                           ),
@@ -551,7 +551,7 @@ class _VehicleEntryDialogState extends State<VehicleEntryDialog> {
 
                 // 2. EMPLOYEE SEARCH PICKER
                 Text(
-                  'PILIH INSPECTOR / EMPLOYEE *',
+                  'INSPECTOR / EMPLOYEE SELECTION *',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
@@ -582,7 +582,7 @@ class _VehicleEntryDialogState extends State<VehicleEntryDialog> {
                                   overflow: TextOverflow.ellipsis,
                                 )
                               : Text(
-                                  'Cari Inspector / Karyawan...',
+                                  'Search Inspector / Employee...',
                                   style: TextStyle(color: textSecondary, fontSize: 13),
                                 ),
                         ),
@@ -596,7 +596,7 @@ class _VehicleEntryDialogState extends State<VehicleEntryDialog> {
 
                 // 3. STATUS INSPECTIONS DROPDOWN
                 Text(
-                  'STATUS INSPEKSI *',
+                  'INSPECTION STATUS *',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
@@ -620,7 +620,7 @@ class _VehicleEntryDialogState extends State<VehicleEntryDialog> {
                   items: const [
                     DropdownMenuItem(
                       value: 'waiting',
-                      child: Text('Menunggu Antrean'),
+                      child: Text('Waiting'),
                     ),
                     DropdownMenuItem(
                       value: 'inProgress',
@@ -628,11 +628,11 @@ class _VehicleEntryDialogState extends State<VehicleEntryDialog> {
                     ),
                     DropdownMenuItem(
                       value: 'completed',
-                      child: Text('Selesai'),
+                      child: Text('Completed'),
                     ),
                     DropdownMenuItem(
                       value: 'failed',
-                      child: Text('Gagal'),
+                      child: Text('Failed'),
                     ),
                     DropdownMenuItem(
                       value: 'draft',
@@ -809,7 +809,7 @@ class _SearchablePickerSheetState<T> extends State<_SearchablePickerSheet<T>> {
 
           // Results Count
           Text(
-            '${filteredItems.length} hasil ditemukan',
+            '${filteredItems.length} results found',
             style: TextStyle(fontSize: 11, color: textSecondary, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
@@ -824,7 +824,7 @@ class _SearchablePickerSheetState<T> extends State<_SearchablePickerSheet<T>> {
                         Icon(Icons.search_off_rounded, size: 48, color: textSecondary.withAlpha(100)),
                         const SizedBox(height: 12),
                         Text(
-                          'Tidak ada hasil untuk "$_query"',
+                          'No results for "$_query"',
                           style: TextStyle(color: textSecondary, fontSize: 13),
                         ),
                       ],

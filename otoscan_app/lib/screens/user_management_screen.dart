@@ -221,8 +221,18 @@ class UserManagementScreenState extends State<UserManagementScreen> {
         child: FloatingActionButton.extended(
           heroTag: 'user_fab',
           onPressed: () => _showAddOrEditUserDialog(),
-          icon: const Icon(Icons.person_add_rounded),
-          label: const Text('Add Client'),
+          backgroundColor: AppColors.primary,
+          elevation: 6,
+          icon: const Icon(Icons.person_add_rounded, color: Colors.white, size: 20),
+          label: const Text(
+            'Add Client',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+              letterSpacing: 0.5,
+            ),
+          ),
         ),
       ),
       body: Column(
@@ -269,89 +279,134 @@ class UserManagementScreenState extends State<UserManagementScreen> {
                               final user = filteredUsers[index];
                               final vehicleCount = user['vehicleCount'] ?? ((user['vehicles'] as List?)?.length ?? 0);
 
-                              return Card(
+                              return Container(
                                 margin: const EdgeInsets.only(bottom: 12),
-                                child: ListTile(
-                                  leading: CircleAvatar(
-                                    backgroundColor: AppColors.primary.withAlpha(30),
-                                    child: Text(
-                                      (user['name'] ?? 'C')[0].toUpperCase(),
-                                      style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
+                                decoration: BoxDecoration(
+                                  color: AppColors.darkSurfaceCard,
+                                  borderRadius: BorderRadius.circular(28),
+                                  border: Border.all(color: AppColors.darkBorderDivider),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withAlpha(30),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 4),
                                     ),
-                                  ),
-                                  title: Text(
-                                    user['name'] ?? '-',
-                                    style: const TextStyle(fontWeight: FontWeight.bold),
-                                  ),
-                                  subtitle: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      if (user['email'] != null && user['email'].toString().isNotEmpty)
-                                        Padding(
-                                          padding: const EdgeInsets.only(top: 2.0),
-                                          child: Row(
-                                            children: [
-                                              Icon(Icons.mail_outline_rounded, size: 14, color: subtextColor),
-                                              const SizedBox(width: 6),
-                                              Expanded(
-                                                child: Text(
-                                                  user['email'].toString(),
-                                                  style: TextStyle(color: subtextColor, fontSize: 13),
-                                                  overflow: TextOverflow.ellipsis,
+                                  ],
+                                ),
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(28),
+                                    onTap: () => _showAddOrEditUserDialog(existingUser: user),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(16),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            width: 48,
+                                            height: 48,
+                                            decoration: BoxDecoration(
+                                              color: AppColors.primary.withAlpha(25),
+                                              borderRadius: BorderRadius.circular(16),
+                                            ),
+                                            child: Center(
+                                              child: Text(
+                                                (user['name'] ?? 'C')[0].toUpperCase(),
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 18,
+                                                  color: AppColors.primary,
                                                 ),
                                               ),
-                                            ],
+                                            ),
                                           ),
-                                        ),
-                                      if (user['phone'] != null && user['phone'].toString().isNotEmpty)
-                                        Padding(
-                                          padding: const EdgeInsets.only(top: 2.0),
-                                          child: Row(
+                                          const SizedBox(width: 14),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Row(
+                                                  children: [
+                                                    Expanded(
+                                                      child: Text(
+                                                        user['name'] ?? '-',
+                                                        style: const TextStyle(
+                                                          fontSize: 16,
+                                                          fontWeight: FontWeight.bold,
+                                                          color: AppColors.darkTextPrimary,
+                                                        ),
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 6),
+                                                    Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                                      decoration: BoxDecoration(
+                                                        color: AppColors.primary.withAlpha(20),
+                                                        borderRadius: BorderRadius.circular(8),
+                                                      ),
+                                                      child: Text(
+                                                        '🚗 $vehicleCount Vehicles',
+                                                        style: const TextStyle(
+                                                          fontSize: 11,
+                                                          fontWeight: FontWeight.bold,
+                                                          color: AppColors.primary,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                const SizedBox(height: 4),
+                                                if (user['email'] != null && user['email'].toString().isNotEmpty)
+                                                  Row(
+                                                    children: [
+                                                      Icon(Icons.mail_outline_rounded, size: 13, color: subtextColor),
+                                                      const SizedBox(width: 4),
+                                                      Expanded(
+                                                        child: Text(
+                                                          user['email'].toString(),
+                                                          style: TextStyle(color: subtextColor, fontSize: 12),
+                                                          overflow: TextOverflow.ellipsis,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                if (user['phone'] != null && user['phone'].toString().isNotEmpty)
+                                                  Padding(
+                                                    padding: const EdgeInsets.only(top: 2),
+                                                    child: Row(
+                                                      children: [
+                                                        Icon(Icons.phone_outlined, size: 13, color: subtextColor),
+                                                        const SizedBox(width: 4),
+                                                        Text(
+                                                          user['phone'].toString(),
+                                                          style: TextStyle(color: subtextColor, fontSize: 12),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                              ],
+                                            ),
+                                          ),
+                                          Row(
+                                            mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              Icon(Icons.phone_outlined, size: 14, color: subtextColor),
-                                              const SizedBox(width: 6),
-                                              Text(
-                                                user['phone'].toString(),
-                                                style: TextStyle(color: subtextColor, fontSize: 13),
+                                              IconButton(
+                                                icon: const Icon(Icons.edit_rounded, color: AppColors.primary, size: 20),
+                                                tooltip: 'Edit Client',
+                                                onPressed: () => _showAddOrEditUserDialog(existingUser: user),
+                                              ),
+                                              IconButton(
+                                                icon: const Icon(Icons.delete_outline_rounded, color: AppColors.danger, size: 20),
+                                                tooltip: 'Delete Client',
+                                                onPressed: () => _confirmDeleteUser(user),
                                               ),
                                             ],
                                           ),
-                                        ),
-                                      const SizedBox(height: 6),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.primary.withAlpha(20),
-                                          borderRadius: BorderRadius.circular(8),
-                                          border: Border.all(color: AppColors.primary.withAlpha(60)),
-                                        ),
-                                        child: Text(
-                                          '🚗 $vehicleCount Registered Vehicles',
-                                          style: const TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.bold,
-                                            color: AppColors.primary,
-                                          ),
-                                        ),
+                                        ],
                                       ),
-                                    ],
+                                    ),
                                   ),
-                                  trailing: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      IconButton(
-                                        icon: const Icon(Icons.edit_rounded, color: AppColors.primary, size: 20),
-                                        tooltip: 'Edit Client',
-                                        onPressed: () => _showAddOrEditUserDialog(existingUser: user),
-                                      ),
-                                      IconButton(
-                                        icon: const Icon(Icons.delete_outline_rounded, color: AppColors.danger, size: 20),
-                                        tooltip: 'Delete Client',
-                                        onPressed: () => _confirmDeleteUser(user),
-                                      ),
-                                    ],
-                                  ),
-                                  isThreeLine: true,
                                 ),
                               );
                             },

@@ -5,25 +5,9 @@ import '../services/api_service.dart';
 import '../services/yolo_damage_detector.dart';
 
 class AppState extends ChangeNotifier {
-  ThemeMode _themeMode = ThemeMode.dark;
-  ThemeMode get themeMode => _themeMode;
-
-  bool get isDarkMode => _themeMode == ThemeMode.dark;
-
+  // Dark mode only — theme switching removed
   bool _isDetectorReady = false;
   bool get isDetectorReady => _isDetectorReady;
-
-  void toggleTheme() {
-    _themeMode = _themeMode == ThemeMode.light
-        ? ThemeMode.dark
-        : ThemeMode.light;
-    notifyListeners();
-  }
-
-  void setThemeMode(ThemeMode mode) {
-    _themeMode = mode;
-    notifyListeners();
-  }
 
   final List<VehicleRecord> _records = [];
   List<VehicleRecord> get records => List.unmodifiable(_records);
@@ -121,6 +105,8 @@ class AppState extends ChangeNotifier {
       );
 
       if (json['photos'] != null && json['photos'] is List) {
+        final Map<ScanAngle, DateTime?> angleLastCreated = {};
+
         for (var p in (json['photos'] as List)) {
           String strToMatch = '';
           if (p['angleCapture'] != null) {
@@ -135,108 +121,112 @@ class AppState extends ChangeNotifier {
           ScanAngle? angle;
           if (strToMatch.contains('kanan') || strToMatch.contains('right')) {
             angle = ScanAngle.kanan;
-          } else if (strToMatch.contains('kiri') ||
-              strToMatch.contains('left')) {
+          } else if (strToMatch.contains('kiri') || strToMatch.contains('left')) {
             angle = ScanAngle.kiri;
-          } else if (strToMatch.contains('depan') ||
-              strToMatch.contains('front')) {
+          } else if (strToMatch.contains('depan') || strToMatch.contains('front')) {
             angle = ScanAngle.depan;
-          } else if (strToMatch.contains('belakang') ||
-              strToMatch.contains('rear')) {
+          } else if (strToMatch.contains('belakang') || strToMatch.contains('rear') || strToMatch.contains('back')) {
             angle = ScanAngle.belakang;
-          } else if (strToMatch.contains('samping') ||
-              strToMatch.contains('side')) {
-            angle = ScanAngle.kanan;
-          } else if (strToMatch.contains('atas') ||
-              strToMatch.contains('top')) {
-            angle = ScanAngle.kiri;
           }
 
           if (angle != null) {
-            final cap = record.getAngleCapture(angle);
-            cap.isCaptured = true;
-            final imgPath = p['imagePath']?.toString();
-            if (imgPath != null && imgPath.isNotEmpty) {
-              cap.rawImageUrl = imgPath.startsWith('http')
-                  ? imgPath
-                  : '${ApiService.serverBaseUrl}$imgPath';
+            DateTime pTime = DateTime.fromMillisecondsSinceEpoch(0);
+            final rawCreated = p['createdAt'] ?? p['created_at'];
+            if (rawCreated != null) {
+              try {
+                pTime = DateTime.parse(rawCreated.toString()).toLocal();
+              } catch (_) {}
             }
-            if (p['damages'] != null && p['damages'] is List) {
-              final List damageList = p['damages'];
-              final List<DamageItem> parsedDamages = [];
 
-              for (var d in damageList) {
-                final dId = d['id']?.toString() ?? '';
-                final dTypeObj = d['damageType'];
-                String typeName =
-                    dTypeObj?['name']?.toString() ??
-                    (dTypeObj?['code']?.toString() ?? 'Kerusakan');
-                String description =
-                    dTypeObj?['description']?.toString() ??
-                    'Terdeteksi oleh AI YOLOv12';
-
-                DamageSeverity severity = DamageSeverity.sedang;
-                final sevStr =
-                    dTypeObj?['defaultSeverity']?.toString().toLowerCase() ??
-                    '';
-                if (sevStr == 'berat') {
-                  severity = DamageSeverity.berat;
-                } else if (sevStr == 'ringan') {
-                  severity = DamageSeverity.ringan;
-                }
-
-                double xRatio = 0.5;
-                double yRatio = 0.5;
-                double wRatio = 0.2;
-                double hRatio = 0.2;
-
-                final bboxStr = d['bboxCoordinates']?.toString() ?? '';
-                if (bboxStr.isNotEmpty) {
-                  try {
-                    final cleaned = bboxStr
-                        .replaceAll('[', '')
-                        .replaceAll(']', '')
-                        .trim();
-                    final parts = cleaned.split(',');
-                    if (parts.length >= 4) {
-                      double x1 = double.parse(parts[0].trim());
-                      double y1 = double.parse(parts[1].trim());
-                      double x2 = double.parse(parts[2].trim());
-                      double y2 = double.parse(parts[3].trim());
-
-                      xRatio = (((x1 + x2) / 2.0) / 800.0).clamp(0.05, 0.95);
-                      yRatio = (((y1 + y2) / 2.0) / 800.0).clamp(0.05, 0.95);
-                      wRatio = ((x2 - x1) / 800.0).clamp(0.05, 0.95);
-                      hRatio = ((y2 - y1) / 800.0).clamp(0.05, 0.95);
-                    }
-                  } catch (_) {}
-                }
-
-                parsedDamages.add(
-                  DamageItem(
-                    id: dId,
-                    angle: angle,
-                    type: typeName,
-                    severity: severity,
-                    description: description,
-                    xRatio: xRatio,
-                    yRatio: yRatio,
-                    widthRatio: wRatio,
-                    heightRatio: hRatio,
-                    isConfirmed: true,
-                  ),
-                );
-
-                final annPath = d['annotatedImagePath']?.toString();
-                if (annPath != null && annPath.isNotEmpty) {
-                  cap.annotatedImageUrl = annPath.startsWith('http')
-                      ? annPath
-                      : '${ApiService.serverBaseUrl}$annPath';
-                }
+            final lastTime = angleLastCreated[angle];
+            if (lastTime == null || pTime.isAfter(lastTime) || lastTime == pTime) {
+              angleLastCreated[angle] = pTime;
+              final cap = record.getAngleCapture(angle);
+              cap.isCaptured = true;
+              final imgPath = p['imagePath']?.toString();
+              if (imgPath != null && imgPath.isNotEmpty) {
+                cap.rawImageUrl = imgPath.startsWith('http')
+                    ? imgPath
+                    : '${ApiService.serverBaseUrl}$imgPath';
               }
 
-              if (parsedDamages.isNotEmpty) {
-                cap.damages = parsedDamages;
+              if (p['damages'] != null && p['damages'] is List) {
+                final List damageList = p['damages'];
+                final List<DamageItem> parsedDamages = [];
+
+                for (var d in damageList) {
+                  final dId = d['id']?.toString() ?? '';
+                  final dTypeObj = d['damageType'];
+                  String typeName =
+                      dTypeObj?['name']?.toString() ??
+                      (dTypeObj?['code']?.toString() ?? 'Damage');
+                  String description =
+                      dTypeObj?['description']?.toString() ??
+                      'Detected by AI YOLOv12';
+
+                  DamageSeverity severity = DamageSeverity.sedang;
+                  final sevStr =
+                      dTypeObj?['defaultSeverity']?.toString().toLowerCase() ??
+                      '';
+                  if (sevStr == 'berat') {
+                    severity = DamageSeverity.berat;
+                  } else if (sevStr == 'ringan') {
+                    severity = DamageSeverity.ringan;
+                  }
+
+                  double xRatio = 0.5;
+                  double yRatio = 0.5;
+                  double wRatio = 0.2;
+                  double hRatio = 0.2;
+
+                  final bboxStr = d['bboxCoordinates']?.toString() ?? '';
+                  if (bboxStr.isNotEmpty) {
+                    try {
+                      final cleaned = bboxStr
+                          .replaceAll('[', '')
+                          .replaceAll(']', '')
+                          .trim();
+                      final parts = cleaned.split(',');
+                      if (parts.length >= 4) {
+                        double x1 = double.parse(parts[0].trim());
+                        double y1 = double.parse(parts[1].trim());
+                        double x2 = double.parse(parts[2].trim());
+                        double y2 = double.parse(parts[3].trim());
+
+                        xRatio = (((x1 + x2) / 2.0) / 800.0).clamp(0.05, 0.95);
+                        yRatio = (((y1 + y2) / 2.0) / 800.0).clamp(0.05, 0.95);
+                        wRatio = ((x2 - x1) / 800.0).clamp(0.05, 0.95);
+                        hRatio = ((y2 - y1) / 800.0).clamp(0.05, 0.95);
+                      }
+                    } catch (_) {}
+                  }
+
+                  parsedDamages.add(
+                    DamageItem(
+                      id: dId,
+                      angle: angle,
+                      type: typeName,
+                      severity: severity,
+                      description: description,
+                      xRatio: xRatio,
+                      yRatio: yRatio,
+                      widthRatio: wRatio,
+                      heightRatio: hRatio,
+                      isConfirmed: true,
+                    ),
+                  );
+
+                  final annPath = d['annotatedImagePath']?.toString();
+                  if (annPath != null && annPath.isNotEmpty) {
+                    cap.annotatedImageUrl = annPath.startsWith('http')
+                        ? annPath
+                        : '${ApiService.serverBaseUrl}$annPath';
+                  }
+                }
+
+                if (parsedDamages.isNotEmpty) {
+                  cap.damages = parsedDamages;
+                }
               }
             }
           }
@@ -297,10 +287,10 @@ class AppState extends ChangeNotifier {
     if (_activeRecord == null) return;
 
     final String angleNameStr = switch (angle) {
-      ScanAngle.kanan => 'Tampak Kanan',
-      ScanAngle.kiri => 'Tampak Kiri',
-      ScanAngle.depan => 'Tampak Depan',
-      ScanAngle.belakang => 'Tampak Belakang',
+      ScanAngle.kanan => 'Right Side',
+      ScanAngle.kiri => 'Left Side',
+      ScanAngle.depan => 'Front Side',
+      ScanAngle.belakang => 'Rear Side',
     };
 
     List<DamageItem> damageItems = [];
@@ -362,7 +352,12 @@ class AppState extends ChangeNotifier {
     final capture = _activeRecord!.getAngleCapture(angle);
     capture.isCaptured = true;
     capture.capturedAt = DateTime.now();
+    capture.rawImageUrl = null;
+    capture.annotatedImageUrl = null;
     capture.damages = damageItems;
+
+    PaintingBinding.instance.imageCache.clear();
+    PaintingBinding.instance.imageCache.clearLiveImages();
 
     if (backendResult != null && backendResult['status'] == 'success') {
       final photoObj = backendResult['photo'];

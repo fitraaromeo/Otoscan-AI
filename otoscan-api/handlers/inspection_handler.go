@@ -296,9 +296,39 @@ func AddDamageItem(c *fiber.Ctx) error {
 		if photoID == "" {
 			angleCaptureID := req.AngleCaptureID
 			if angleCaptureID == "" && req.AngleName != "" {
+				lower := strings.ToLower(req.AngleName)
 				var ac models.AngleCapture
-				if err := config.DB.Where("name ILIKE ?", "%"+req.AngleName+"%").First(&ac).Error; err == nil {
-					angleCaptureID = ac.ID
+
+				if strings.Contains(lower, "depan") || strings.Contains(lower, "front") {
+					if err := config.DB.Where("name ILIKE ?", "%depan%").First(&ac).Error; err == nil {
+						angleCaptureID = ac.ID
+					}
+				} else if strings.Contains(lower, "belakang") || strings.Contains(lower, "rear") || strings.Contains(lower, "back") {
+					if err := config.DB.Where("name ILIKE ?", "%belakang%").First(&ac).Error; err == nil {
+						angleCaptureID = ac.ID
+					}
+				} else if strings.Contains(lower, "kanan") || strings.Contains(lower, "right") {
+					if err := config.DB.Where("name ILIKE ?", "%kanan%").First(&ac).Error; err == nil {
+						angleCaptureID = ac.ID
+					} else if err := config.DB.Where("name ILIKE ?", "%samping%").First(&ac).Error; err == nil {
+						angleCaptureID = ac.ID
+					}
+				} else if strings.Contains(lower, "kiri") || strings.Contains(lower, "left") {
+					if err := config.DB.Where("name ILIKE ?", "%kiri%").First(&ac).Error; err == nil {
+						angleCaptureID = ac.ID
+					} else if err := config.DB.Where("name ILIKE ?", "%samping%").First(&ac).Error; err == nil {
+						angleCaptureID = ac.ID
+					}
+				} else if strings.Contains(lower, "samping") || strings.Contains(lower, "side") {
+					if err := config.DB.Where("name ILIKE ?", "%samping%").First(&ac).Error; err == nil {
+						angleCaptureID = ac.ID
+					}
+				}
+
+				if angleCaptureID == "" {
+					if err := config.DB.Where("name ILIKE ?", "%"+req.AngleName+"%").First(&ac).Error; err == nil {
+						angleCaptureID = ac.ID
+					}
 				}
 			}
 			if angleCaptureID == "" {

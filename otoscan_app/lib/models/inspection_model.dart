@@ -10,26 +10,26 @@ enum ScanAngle {
   String get label {
     switch (this) {
       case ScanAngle.kanan:
-        return 'Kanan';
+        return 'Right';
       case ScanAngle.kiri:
-        return 'Kiri';
+        return 'Left';
       case ScanAngle.depan:
-        return 'Depan';
+        return 'Front';
       case ScanAngle.belakang:
-        return 'Belakang';
+        return 'Rear';
     }
   }
 
   String get description {
     switch (this) {
       case ScanAngle.kanan:
-        return 'Scan sisi kanan kendaraan: pintu, spion, bodi & roda kanan';
+        return 'Scan the right side: doors, mirror, body & right wheel';
       case ScanAngle.kiri:
-        return 'Scan sisi kiri kendaraan: pintu, spion, bodi & roda kiri';
+        return 'Scan the left side: doors, mirror, body & left wheel';
       case ScanAngle.depan:
-        return 'Scan bumper depan, kap mesin, kaca depan & lampu utama';
+        return 'Scan front bumper, hood, windshield & headlights';
       case ScanAngle.belakang:
-        return 'Scan bagasi, bumper belakang & lampu rem';
+        return 'Scan trunk, rear bumper & tail lights';
     }
   }
 
@@ -61,9 +61,9 @@ enum ScanAngle {
 }
 
 enum DamageSeverity {
-  ringan('Ringan', 1),
-  sedang('Sedang', 2),
-  berat('Berat', 3);
+  ringan('Minor', 1),
+  sedang('Moderate', 2),
+  berat('Severe', 3);
 
   final String label;
   final int level;
@@ -119,10 +119,10 @@ class AngleCapture {
 }
 
 enum InspectionStatus {
-  waiting('Menunggu Antrean'),
+  waiting('Waiting'),
   inProgress('In Progress'),
-  completed('Selesai'),
-  failed('Gagal'),
+  completed('Completed'),
+  failed('Failed'),
   draft('Draft');
 
   final String label;

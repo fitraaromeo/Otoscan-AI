@@ -19,17 +19,13 @@ class OtoScanApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AppState>(
-      builder: (context, appState, child) {
-        return MaterialApp(
-          title: 'OtoScan AI - Inspeksi Kendaraan',
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.lightTheme,
-          darkTheme: AppTheme.darkTheme,
-          themeMode: appState.themeMode,
-          home: const SplashScreen(),
-        );
-      },
+    return MaterialApp(
+      title: 'OtoScan AI — Vehicle Inspection System',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.darkTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.dark, // Dark mode only
+      home: const SplashScreen(),
     );
   }
 }
