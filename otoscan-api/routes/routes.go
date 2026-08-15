@@ -1,4 +1,4 @@
-package routes
+﻿package routes
 
 import (
 	"otoscan-api/handlers"
@@ -15,14 +15,17 @@ func SetupRoutes(app *fiber.App) {
 	master := api.Group("/master")
 	master.Get("/damage-types", handlers.GetDamageTypes)
 	master.Post("/damage-types", handlers.CreateDamageType)
+	master.Put("/damage-types/:id", handlers.UpdateDamageType)
 	master.Delete("/damage-types/:id", handlers.DeleteDamageType)
 
 	master.Get("/angle-captures", handlers.GetAngleCaptures)
 	master.Post("/angle-captures", handlers.CreateAngleCapture)
+	master.Put("/angle-captures/:id", handlers.UpdateAngleCapture)
 	master.Delete("/angle-captures/:id", handlers.DeleteAngleCapture)
 
 	master.Get("/inspection-statuses", handlers.GetInspectionStatuses)
 	master.Post("/inspection-statuses", handlers.CreateInspectionStatus)
+	master.Put("/inspection-statuses/:id", handlers.UpdateInspectionStatus)
 	master.Delete("/inspection-statuses/:id", handlers.DeleteInspectionStatus)
 
 	// 2. Users / Pemilik Kendaraan Endpoints (/api/users)
@@ -54,8 +57,11 @@ func SetupRoutes(app *fiber.App) {
 	inspections.Get("/", handlers.GetInspections)
 	inspections.Get("/:id", handlers.GetInspectionByID)
 	inspections.Post("/", handlers.CreateInspection)
+	inspections.Put("/:id", handlers.UpdateInspection)
 	inspections.Delete("/:id", handlers.DeleteInspection)
 	inspections.Post("/:id/damages", handlers.AddDamageItem)
 	inspections.Delete("/:id/damages/:damageId", handlers.DeleteDamageItem)
 	inspections.Post("/:id/detect", handlers.DetectDamageYOLOv12)
+	inspections.Post("/detect-preview", handlers.DetectDamagePreview)
 }
+

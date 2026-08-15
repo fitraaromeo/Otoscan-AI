@@ -1,4 +1,4 @@
-package handlers
+﻿package handlers
 
 import (
 	"bytes"
@@ -156,7 +156,7 @@ func DetectDamageYOLOv12(c *fiber.Ctx) error {
 	publicURLPath := fmt.Sprintf("/uploads/inspections/%s", fileName)
 
 	if err := c.SaveFile(fileHeader, localFilePath); err != nil {
-		fmt.Printf("⚠️ Gagal menyimpan file gambar ke disk: %v\n", err)
+		fmt.Printf("âš ï¸ Gagal menyimpan file gambar ke disk: %v\n", err)
 	}
 
 	// Simpan record foto ke tabel inspection_photos
@@ -181,7 +181,7 @@ func DetectDamageYOLOv12(c *fiber.Ctx) error {
 	// Call Python YOLOv12 Microservice with custom result filename
 	yoloResult, err := callYOLOv12Service(aiServiceURL, fileHeader.Filename, fileBytes, resultFileName)
 	if err != nil {
-		logError := fmt.Sprintf("⚠️ YOLOv12 AI Service offline / error: %v", err)
+		logError := fmt.Sprintf("âš ï¸ YOLOv12 AI Service offline / error: %v", err)
 		fmt.Println(logError)
 	}
 
@@ -288,4 +288,82 @@ func callYOLOv12Service(url string, filename string, fileBytes []byte, outputFil
 	}
 
 	return &result, nil
+}
+
+
+// DetectDamagePreview runs YOLOv12 on the uploaded frame and returns predictions without saving to database
+func DetectDamagePreview(c *fiber.Ctx) error {
+	fileHeader, err := c.FormFile("image")
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "File foto kendaraan (image) wajib diunggah",
+		})
+	}
+
+	file, err := fileHeader.Open()
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Gagal membaca file foto kendaraan",
+		})
+	}
+	defer file.Close()
+
+	fileBytes, err := io.ReadAll(file)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Gagal memproses byte file gambar",
+		})
+	}
+
+	aiServiceURL := os.Getenv("YOLO_SERVICE_URL")
+	if aiServiceURL == "" {
+		aiServiceURL = "http://localhost:5000/predict"
+	}
+
+	// Call Python YOLOv12 Microservice. Since it's a preview, we don't need to specify outputFilename for saving.
+	yoloResult, err := callYOLOv12Service(aiServiceURL, fileHeader.Filename, fileBytes, "")
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": fmt.Sprintf("YOLOv12 AI Service error: %v", err),
+		})
+	}
+
+	type DamagePreviewItem struct {
+		ID         string  `json:"id"`
+		Type       string  `json:"type"`
+		Confidence float64 `json:"confidence"`
+		X          float64 `json:"x"`
+		Y          float64 `json:"y"`
+		Width      float64 `json:"width"`
+		Height     float64 `json:"height"`
+	}
+
+	var damages []DamagePreviewItem
+	for idx, pred := range yoloResult.Predictions {
+		if len(pred.BoxXYXY) >= 4 {
+			x1 := pred.BoxXYXY[0]
+			y1 := pred.BoxXYXY[1]
+			x2 := pred.BoxXYXY[2]
+			y2 := pred.BoxXYXY[3]
+			damages = append(damages, DamagePreviewItem{
+				ID:         fmt.Sprintf("prev-%d-%d", idx, time.Now().UnixNano()),
+				Type:       pred.ClassCode,
+				Confidence: pred.Confidence,
+				X:          x1,
+				Y:          y1,
+				Width:      x2 - x1,
+				Height:     y2 - y1,
+			})
+		}
+	}
+
+	return c.JSON(fiber.Map{
+		"status":          "success",
+		"predictions":     damages,
+		"totalDetections": len(damages),
+	})
 }

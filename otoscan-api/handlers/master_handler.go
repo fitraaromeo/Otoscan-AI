@@ -247,3 +247,150 @@ func DeleteInspectionStatus(c *fiber.Ctx) error {
 		"message": "Status inspeksi berhasil dihapus (soft delete)",
 	})
 }
+
+// UpdateDamageType handles updating a damage type master record
+func UpdateDamageType(c *fiber.Ctx) error {
+	id := c.Params("id")
+	var dt models.DamageType
+
+	if config.DB == nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Database not connected",
+		})
+	}
+
+	if err := config.DB.First(&dt, "id = ?", id).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Jenis kerusakan tidak ditemukan",
+		})
+	}
+
+	var req models.DamageType
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Format payload JSON tidak valid",
+		})
+	}
+
+	if req.Code != "" {
+		dt.Code = req.Code
+	}
+	if req.Name != "" {
+		dt.Name = req.Name
+	}
+	dt.Description = req.Description
+	dt.UpdatedAt = time.Now()
+
+	if err := config.DB.Save(&dt).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Gagal memperbarui jenis kerusakan: " + err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"status":  "success",
+		"message": "Jenis kerusakan berhasil diperbarui",
+		"data":    dt,
+	})
+}
+
+// UpdateAngleCapture handles updating a master angle capture definition
+func UpdateAngleCapture(c *fiber.Ctx) error {
+	id := c.Params("id")
+	var ac models.AngleCapture
+
+	if config.DB == nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Database not connected",
+		})
+	}
+
+	if err := config.DB.First(&ac, "id = ?", id).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Sudut pemindaian tidak ditemukan",
+		})
+	}
+
+	var req models.AngleCapture
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Format payload JSON tidak valid",
+		})
+	}
+
+	if req.Name != "" {
+		ac.Name = req.Name
+	}
+	ac.Description = req.Description
+	ac.UpdatedAt = time.Now()
+
+	if err := config.DB.Save(&ac).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Gagal memperbarui sudut pemindaian: " + err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"status":  "success",
+		"message": "Sudut pemindaian berhasil diperbarui",
+		"data":    ac,
+	})
+}
+
+// UpdateInspectionStatus handles updating a master inspection status
+func UpdateInspectionStatus(c *fiber.Ctx) error {
+	id := c.Params("id")
+	var is models.InspectionStatus
+
+	if config.DB == nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Database not connected",
+		})
+	}
+
+	if err := config.DB.First(&is, "id = ?", id).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Status inspeksi tidak ditemukan",
+		})
+	}
+
+	var req models.InspectionStatus
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Format payload JSON tidak valid",
+		})
+	}
+
+	if req.Code != "" {
+		is.Code = req.Code
+	}
+	if req.Name != "" {
+		is.Name = req.Name
+	}
+	is.Description = req.Description
+	is.UpdatedAt = time.Now()
+
+	if err := config.DB.Save(&is).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Gagal memperbarui status inspeksi: " + err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"status":  "success",
+		"message": "Status inspeksi berhasil diperbarui",
+		"data":    is,
+	})
+}

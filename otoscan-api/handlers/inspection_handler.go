@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"strings"
 	"time"
 
 	"otoscan-api/config"
@@ -11,6 +12,47 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
+
+func resolveInspectionStatusID(input string) *string {
+	if config.DB == nil {
+		return nil
+	}
+
+	var st models.InspectionStatus
+
+	if input != "" {
+		// 1. Direct query by ID, Code, or Name
+		if err := config.DB.Where("id = ? OR code ILIKE ? OR name ILIKE ?", input, input, input).First(&st).Error; err == nil {
+			return &st.ID
+		}
+
+		// 2. Dynamic fuzzy query by keyword
+		lower := strings.ToLower(input)
+		var searchPattern string
+		if strings.Contains(lower, "progress") || strings.Contains(lower, "berlangsung") {
+			searchPattern = "%progress%"
+		} else if strings.Contains(lower, "pend") || strings.Contains(lower, "tunggu") || strings.Contains(lower, "antrean") {
+			searchPattern = "%pending%"
+		} else if strings.Contains(lower, "complete") || strings.Contains(lower, "selesai") {
+			searchPattern = "%complete%"
+		} else if strings.Contains(lower, "fail") || strings.Contains(lower, "gagal") {
+			searchPattern = "%fail%"
+		}
+
+		if searchPattern != "" {
+			if err := config.DB.Where("code ILIKE ? OR name ILIKE ?", searchPattern, searchPattern).First(&st).Error; err == nil {
+				return &st.ID
+			}
+		}
+	}
+
+	// 3. Dynamic fallback to first status record in database
+	if err := config.DB.Order("created_at asc").First(&st).Error; err == nil {
+		return &st.ID
+	}
+
+	return nil
+}
 
 // CreateInspection handles creation of a new vehicle inspection record
 func CreateInspection(c *fiber.Ctx) error {
@@ -68,11 +110,6 @@ func CreateInspection(c *fiber.Ctx) error {
 	}
 
 	inspectionID := uuid.New().String()
-	statusVal := req.Status
-	if statusVal == "" {
-		statusVal = "inProgress"
-	}
-
 	var searchStatusStr string
 	if req.StatusID != nil && *req.StatusID != "" {
 		searchStatusStr = *req.StatusID
@@ -80,14 +117,7 @@ func CreateInspection(c *fiber.Ctx) error {
 		searchStatusStr = req.Status
 	}
 
-	var resolvedStatusID *string
-	if config.DB != nil && searchStatusStr != "" {
-		var st models.InspectionStatus
-		if err := config.DB.Where("id = ? OR code ILIKE ? OR name ILIKE ?", searchStatusStr, searchStatusStr, searchStatusStr).First(&st).Error; err == nil {
-			resolvedStatusID = &st.ID
-			statusVal = st.Code
-		}
-	}
+	resolvedStatusID := resolveInspectionStatusID(searchStatusStr)
 
 	newInspection := models.Inspection{
 		ID:         inspectionID,
@@ -349,5 +379,92 @@ func DeleteDamageItem(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"status":  "success",
 		"message": "Temuan kerusakan berhasil dihapus (soft delete)",
+	})
+}
+
+// UpdateInspection handles updating inspection record details (vehicle, employee, status)
+func UpdateInspection(c *fiber.Ctx) error {
+	id := c.Params("id")
+
+	if config.DB == nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Database not connected",
+		})
+	}
+
+	var inspection models.Inspection
+	if err := config.DB.First(&inspection, "id = ?", id).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Data inspeksi tidak ditemukan",
+		})
+	}
+
+	type UpdateReq struct {
+		VehicleID  string  `json:"vehicleId"`
+		EmployeeID *string `json:"employeeId"`
+		StatusID   *string `json:"statusId"`
+		Status     string  `json:"status"`
+	}
+
+	var req UpdateReq
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Format JSON request tidak valid",
+		})
+	}
+
+	if req.VehicleID != "" {
+		inspection.VehicleID = req.VehicleID
+	}
+	if req.EmployeeID != nil {
+		inspection.EmployeeID = req.EmployeeID
+	}
+
+	var searchStatusStr string
+	if req.StatusID != nil && *req.StatusID != "" {
+		searchStatusStr = *req.StatusID
+	} else if req.Status != "" {
+		searchStatusStr = req.Status
+	}
+
+	if searchStatusStr != "" {
+		resolvedID := resolveInspectionStatusID(searchStatusStr)
+		if resolvedID != nil {
+			inspection.StatusID = resolvedID
+		}
+	}
+
+	inspection.UpdatedAt = time.Now()
+
+	if err := config.DB.Save(&inspection).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Gagal memperbarui data inspeksi: " + err.Error(),
+		})
+	}
+
+	// Reload full preloaded Inspection record
+	var loadedInspection models.Inspection
+	config.DB.Preload("Vehicle").
+		Preload("Vehicle.User").
+		Preload("Employee").
+		Preload("InspectionStatus").
+		Preload("Photos").
+		Preload("Photos.AngleCapture").
+		Preload("Photos.Damages").
+		Preload("Photos.Damages.DamageType").
+		First(&loadedInspection, "id = ?", id)
+
+	if loadedInspection.Vehicle != nil {
+		PopulateUserVehicleCount(loadedInspection.Vehicle.User)
+	}
+
+	return c.JSON(fiber.Map{
+		"status":  "success",
+		"message": "Data inspeksi berhasil diperbarui",
+		"data":    loadedInspection,
 	})
 }
