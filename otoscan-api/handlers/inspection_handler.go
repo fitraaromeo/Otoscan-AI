@@ -77,6 +77,9 @@ func CreateInspection(c *fiber.Ctx) error {
 
 	targetVehicleID := req.VehicleID
 
+	userRole, _ := c.Locals("role").(string)
+	userID, _ := c.Locals("user_id").(string)
+
 	if config.DB != nil {
 		// If vehicleId not provided, search or create vehicle by nopol
 		if targetVehicleID == "" {
@@ -90,8 +93,13 @@ func CreateInspection(c *fiber.Ctx) error {
 			var vehicle models.Vehicle
 			if err := config.DB.Where("nopol = ?", req.Nopol).First(&vehicle).Error; err != nil {
 				// Create new vehicle if not found
+				var ownerID *string
+				if !strings.EqualFold(userRole, "admin") && userID != "" {
+					ownerID = &userID
+				}
 				vehicle = models.Vehicle{
 					ID:        uuid.New().String(),
+					UserID:    ownerID,
 					Nopol:     req.Nopol,
 					Merk:      req.Merk,
 					Tipe:      req.Tipe,
@@ -102,6 +110,17 @@ func CreateInspection(c *fiber.Ctx) error {
 				config.DB.Create(&vehicle)
 			}
 			targetVehicleID = vehicle.ID
+		} else if !strings.EqualFold(userRole, "admin") && userID != "" {
+			// Verify provided vehicleId belongs to user
+			var vehicle models.Vehicle
+			if err := config.DB.Where("id = ?", targetVehicleID).First(&vehicle).Error; err == nil {
+				if vehicle.UserID == nil || *vehicle.UserID != userID {
+					return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+						"status":  "error",
+						"message": "Anda tidak memiliki akses ke kendaraan ini",
+					})
+				}
+			}
 		}
 	} else {
 		if targetVehicleID == "" {
@@ -171,12 +190,21 @@ func GetInspections(c *fiber.Ctx) error {
 	var total int64
 
 	page, limit := utils.GetPaginationParams(c)
+	userRole, _ := c.Locals("role").(string)
+	userID, _ := c.Locals("user_id").(string)
 
 	if config.DB != nil {
-		config.DB.Model(&models.Inspection{}).Count(&total)
+		query := config.DB.Model(&models.Inspection{})
+
+		// If non-admin user, filter inspections by vehicles owned by the user
+		if !strings.EqualFold(userRole, "admin") && userID != "" {
+			query = query.Joins("JOIN vehicles ON vehicles.id = inspections.vehicle_id").Where("vehicles.user_id = ?", userID)
+		}
+
+		query.Count(&total)
 		offset := (page - 1) * limit
 
-		config.DB.Preload("Vehicle").
+		query.Preload("Vehicle").
 			Preload("Vehicle.User").
 			Preload("Employee").
 			Preload("InspectionStatus").
@@ -184,7 +212,7 @@ func GetInspections(c *fiber.Ctx) error {
 			Preload("Photos.AngleCapture").
 			Preload("Photos.Damages").
 			Preload("Photos.Damages.DamageType").
-			Order("created_at desc").
+			Order("inspections.created_at desc").
 			Limit(limit).
 			Offset(offset).
 			Find(&inspections)
@@ -210,6 +238,8 @@ func GetInspections(c *fiber.Ctx) error {
 func GetInspectionByID(c *fiber.Ctx) error {
 	id := c.Params("id")
 	var inspection models.Inspection
+	userRole, _ := c.Locals("role").(string)
+	userID, _ := c.Locals("user_id").(string)
 
 	if config.DB != nil {
 		err := config.DB.Preload("Vehicle").
@@ -227,6 +257,17 @@ func GetInspectionByID(c *fiber.Ctx) error {
 				"message": "Data inspeksi tidak ditemukan",
 			})
 		}
+
+		// Non-admin user can only access inspections for their own vehicles
+		if !strings.EqualFold(userRole, "admin") {
+			if inspection.Vehicle == nil || inspection.Vehicle.UserID == nil || *inspection.Vehicle.UserID != userID {
+				return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+					"status":  "error",
+					"message": "Anda tidak memiliki akses ke data inspeksi ini",
+				})
+			}
+		}
+
 		if inspection.Vehicle != nil {
 			PopulateUserVehicleCount(inspection.Vehicle.User)
 		}
@@ -240,6 +281,14 @@ func GetInspectionByID(c *fiber.Ctx) error {
 
 // DeleteInspection handles soft deleting an inspection record and all its photos & damage items
 func DeleteInspection(c *fiber.Ctx) error {
+	userRole, _ := c.Locals("role").(string)
+	if !strings.EqualFold(userRole, "admin") {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Hanya Admin yang memiliki hak akses untuk menghapus data inspeksi",
+		})
+	}
+
 	id := c.Params("id")
 
 	if config.DB != nil {

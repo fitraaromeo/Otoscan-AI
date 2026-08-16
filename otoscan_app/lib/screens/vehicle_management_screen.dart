@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../services/api_service.dart';
+import '../state/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/capsule_search_bar.dart';
 
@@ -37,12 +39,24 @@ class VehicleManagementScreenState extends State<VehicleManagementScreen> {
   }
 
   void _showAddOrEditVehicleDialog({Map<String, dynamic>? existingVehicle}) {
+    final appState = Provider.of<AppState>(context, listen: false);
+    final isAdmin = appState.isAdmin;
+
     final isEditing = existingVehicle != null;
     final nopolController = TextEditingController(text: existingVehicle?['nopol'] ?? '');
     final merkController = TextEditingController(text: existingVehicle?['merk'] ?? '');
     final tipeController = TextEditingController(text: existingVehicle?['tipe'] ?? '');
     String selectedJenis = existingVehicle?['jenis'] ?? 'Sedan';
-    String? selectedUserId = existingVehicle?['userId']?.toString() ?? existingVehicle?['user_id']?.toString();
+
+    String? currentUserId;
+    final userObj = appState.currentUser;
+    if (userObj != null && userObj['id'] != null) {
+      currentUserId = userObj['id'].toString();
+    }
+
+    String? selectedUserId = existingVehicle?['userId']?.toString() ??
+        existingVehicle?['user_id']?.toString() ??
+        (!isAdmin ? currentUserId : null);
 
     showDialog(
       context: context,
@@ -104,24 +118,26 @@ class VehicleManagementScreenState extends State<VehicleManagementScreen> {
                         if (val != null) setDialogState(() => selectedJenis = val);
                       },
                     ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String?>(
-                      initialValue: selectedUserId,
-                      decoration: const InputDecoration(
-                        labelText: 'Owner (Client)',
-                        prefixIcon: Icon(Icons.person),
+                    if (isAdmin) ...[
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String?>(
+                        initialValue: selectedUserId,
+                        decoration: const InputDecoration(
+                          labelText: 'Owner (Client)',
+                          prefixIcon: Icon(Icons.person),
+                        ),
+                        items: [
+                          const DropdownMenuItem<String?>(value: null, child: Text('-- No Owner --')),
+                          ..._users.map((u) => DropdownMenuItem<String?>(
+                                value: u['id'].toString(),
+                                child: Text(u['name'] ?? 'Client'),
+                              )),
+                        ],
+                        onChanged: (val) {
+                          setDialogState(() => selectedUserId = val);
+                        },
                       ),
-                      items: [
-                        const DropdownMenuItem<String?>(value: null, child: Text('-- No Owner --')),
-                        ..._users.map((u) => DropdownMenuItem<String?>(
-                              value: u['id'].toString(),
-                              child: Text(u['name'] ?? 'Client'),
-                            )),
-                      ],
-                      onChanged: (val) {
-                        setDialogState(() => selectedUserId = val);
-                      },
-                    ),
+                    ],
                   ],
                 ),
               ),
@@ -191,6 +207,14 @@ class VehicleManagementScreenState extends State<VehicleManagementScreen> {
   }
 
   void _confirmDeleteVehicle(Map<String, dynamic> vehicle) {
+    final appState = Provider.of<AppState>(context, listen: false);
+    if (!appState.isAdmin) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('❌ Hanya Admin yang dapat menghapus kendaraan')),
+      );
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (dialogContext) {
@@ -238,6 +262,9 @@ class VehicleManagementScreenState extends State<VehicleManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final appState = Provider.of<AppState>(context);
+    final isAdmin = appState.isAdmin;
+
     final filteredVehicles = _vehicles.where((v) {
       final nopol = (v['nopol'] ?? '').toString().toLowerCase();
       final merk = (v['merk'] ?? '').toString().toLowerCase();
@@ -412,11 +439,13 @@ class VehicleManagementScreenState extends State<VehicleManagementScreen> {
                                                 tooltip: 'Edit Vehicle',
                                                 onPressed: () => _showAddOrEditVehicleDialog(existingVehicle: v),
                                               ),
-                                              IconButton(
-                                                icon: const Icon(Icons.delete_outline_rounded, color: AppColors.danger, size: 20),
-                                                tooltip: 'Delete Vehicle',
-                                                onPressed: () => _confirmDeleteVehicle(v),
-                                              ),
+                                              if (isAdmin) ...[
+                                                IconButton(
+                                                  icon: const Icon(Icons.delete_outline_rounded, color: AppColors.danger, size: 20),
+                                                  tooltip: 'Delete Vehicle',
+                                                  onPressed: () => _confirmDeleteVehicle(v),
+                                                ),
+                                              ],
                                             ],
                                           ),
                                         ],

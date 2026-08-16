@@ -87,6 +87,20 @@ func CreateUser(c *fiber.Ctx) error {
 		})
 	}
 
+	// Set default password if not provided
+	pass := user.Password
+	if pass == "" {
+		pass = "password123"
+	}
+	hashedPass, err := utils.HashPassword(pass)
+	if err == nil {
+		user.Password = hashedPass
+	}
+
+	if user.Role == "" {
+		user.Role = "user"
+	}
+
 	user.ID = uuid.New().String()
 	user.CreatedAt = time.Now()
 	user.UpdatedAt = time.Now()
@@ -138,9 +152,24 @@ func UpdateUser(c *fiber.Ctx) error {
 	if req.Name != "" {
 		user.Name = req.Name
 	}
-	user.Email = req.Email
-	user.Phone = req.Phone
-	user.Address = req.Address
+	if req.Email != "" {
+		user.Email = req.Email
+	}
+	if req.Phone != "" {
+		user.Phone = req.Phone
+	}
+	if req.Address != "" {
+		user.Address = req.Address
+	}
+	if req.Role != "" {
+		user.Role = req.Role
+	}
+	if req.Password != "" {
+		hashedPass, err := utils.HashPassword(req.Password)
+		if err == nil {
+			user.Password = hashedPass
+		}
+	}
 	user.UpdatedAt = time.Now()
 
 	if err := config.DB.Select("*").Save(&user).Error; err != nil {

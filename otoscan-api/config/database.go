@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"otoscan-api/models"
+	"otoscan-api/utils"
 
 	"github.com/google/uuid"
 	"gorm.io/driver/postgres"
@@ -136,6 +137,8 @@ func ConnectDatabase() *gorm.DB {
 		ALTER TABLE damage_items DROP COLUMN IF EXISTS inspection_id CASCADE;
 		ALTER TABLE damage_items DROP COLUMN IF EXISTS angle_capture_id CASCADE;
 		ALTER TABLE employees ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
+		ALTER TABLE users ADD COLUMN IF NOT EXISTS password VARCHAR(255);
+		ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'user';
 		CREATE INDEX IF NOT EXISTS idx_inspections_status_id ON inspections(status_id);
 		CREATE INDEX IF NOT EXISTS idx_inspection_photos_inspection ON inspection_photos(inspection_id);
 		CREATE INDEX IF NOT EXISTS idx_inspection_photos_angle_capture ON inspection_photos(angle_capture_id);
@@ -146,6 +149,13 @@ func ConnectDatabase() *gorm.DB {
 		log.Printf("⚠️ Raw SQL migration error: %v", err)
 	} else {
 		log.Println("✅ Tabel master inspection_statuses & relasi PostgreSQL berhasil dipastikan!")
+	}
+
+	// Update existing users without password to have default password
+	defaultHashedPassword, err := utils.HashPassword("password123")
+	if err == nil {
+		db.Model(&models.User{}).Where("password IS NULL OR password = ''").Update("password", defaultHashedPassword)
+		db.Model(&models.User{}).Where("role IS NULL OR role = ''").Update("role", "user")
 	}
 
 	// Seed Master Data
@@ -199,9 +209,10 @@ func seedUsers(db *gorm.DB) {
 	var count int64
 	db.Model(&models.User{}).Count(&count)
 	if count == 0 {
+		defaultPass, _ := utils.HashPassword("password123")
 		seeds := []models.User{
-			{ID: uuid.New().String(), Name: "Bambang Wijaya", Email: "bambang.w@gmail.com", Phone: "081211112222", Address: "Jl. Sudirman No. 45, Jakarta Selatan", CreatedAt: time.Now(), UpdatedAt: time.Now()},
-			{ID: uuid.New().String(), Name: "Dewi Lestari", Email: "dewi.lestari@yahoo.com", Phone: "081333334444", Address: "Jl. Gatot Subroto No. 88, Jakarta Selatan", CreatedAt: time.Now(), UpdatedAt: time.Now()},
+			{ID: uuid.New().String(), Name: "Bambang Wijaya", Email: "bambang.w@gmail.com", Password: defaultPass, Role: "admin", Phone: "081211112222", Address: "Jl. Sudirman No. 45, Jakarta Selatan", CreatedAt: time.Now(), UpdatedAt: time.Now()},
+			{ID: uuid.New().String(), Name: "Dewi Lestari", Email: "dewi.lestari@yahoo.com", Password: defaultPass, Role: "user", Phone: "081333334444", Address: "Jl. Gatot Subroto No. 88, Jakarta Selatan", CreatedAt: time.Now(), UpdatedAt: time.Now()},
 		}
 		for _, seed := range seeds {
 			db.Create(&seed)

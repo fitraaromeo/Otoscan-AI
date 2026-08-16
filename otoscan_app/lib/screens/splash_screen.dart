@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../state/app_state.dart';
 import '../theme/app_theme.dart';
+import 'login_screen.dart';
 import 'main_navigation_shell.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -93,11 +96,15 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   void _navigateToHome() {
+    final appState = Provider.of<AppState>(context, listen: false);
+    final Widget targetScreen = appState.isLoggedIn
+        ? const MainNavigationShell()
+        : const LoginScreen();
+
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 600),
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            const MainNavigationShell(),
+        pageBuilder: (context, animation, secondaryAnimation) => targetScreen,
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(
             opacity: animation,

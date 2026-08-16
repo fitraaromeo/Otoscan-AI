@@ -9,6 +9,13 @@ class AppState extends ChangeNotifier {
   bool _isDetectorReady = false;
   bool get isDetectorReady => _isDetectorReady;
 
+  // Auth getters
+  bool get isLoggedIn => ApiService.authToken != null && ApiService.authToken!.isNotEmpty;
+  bool get isAdmin => (ApiService.currentUser?['role']?.toString().toLowerCase() ?? '') == 'admin';
+  Map<String, dynamic>? get currentUser => ApiService.currentUser;
+  String get userDisplayName => currentUser?['name']?.toString() ?? 'User';
+  String get userRoleBadge => isAdmin ? 'ADMIN' : 'USER';
+
   final List<VehicleRecord> _records = [];
   List<VehicleRecord> get records => List.unmodifiable(_records);
 
@@ -16,8 +23,62 @@ class AppState extends ChangeNotifier {
   VehicleRecord? get activeRecord => _activeRecord;
 
   AppState() {
-    fetchInspectionsFromApi();
     _initYoloDetector();
+  }
+
+  Future<Map<String, dynamic>> login(String email, String password) async {
+    final result = await ApiService.login(email: email, password: password);
+    if (result['success'] == true) {
+      await fetchInspectionsFromApi();
+    }
+    notifyListeners();
+    return result;
+  }
+
+  Future<Map<String, dynamic>> register({
+    required String name,
+    required String email,
+    required String password,
+    required String phone,
+    required String address,
+  }) async {
+    final result = await ApiService.register(
+      name: name,
+      email: email,
+      password: password,
+      phone: phone,
+      address: address,
+    );
+    if (result['success'] == true) {
+      await fetchInspectionsFromApi();
+    }
+    notifyListeners();
+    return result;
+  }
+
+  Future<void> logout() async {
+    await ApiService.logout();
+    _records.clear();
+    _activeRecord = null;
+    notifyListeners();
+  }
+
+  Future<bool> updateProfile({
+    String? name,
+    String? password,
+    String? phone,
+    String? address,
+  }) async {
+    final success = await ApiService.updateProfile(
+      name: name,
+      password: password,
+      phone: phone,
+      address: address,
+    );
+    if (success) {
+      notifyListeners();
+    }
+    return success;
   }
 
   Future<void> fetchInspectionsFromApi() async {

@@ -287,71 +287,73 @@ class InspectionDetailScreen extends StatelessWidget {
                 },
               ),
 
-            const SizedBox(height: 24),
-            // Re-Scan Button
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  final appState = Provider.of<AppState>(context, listen: false);
-                  appState.setActiveRecord(record);
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => VehicleScanScreen(record: record),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.qr_code_scanner_rounded),
-                label: const Text(
-                  'Re-Open 4-Side Scanner',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  shape: const StadiumBorder(),
+            if (appState.isAdmin) ...[
+              const SizedBox(height: 24),
+              // Re-Scan Button
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    final appState = Provider.of<AppState>(context, listen: false);
+                    appState.setActiveRecord(record);
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => VehicleScanScreen(record: record),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.qr_code_scanner_rounded),
+                  label: const Text(
+                    'Re-Open 4-Side Scanner',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: const StadiumBorder(),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
 
-            // Large Prominent Delete Button
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder: (ctx) => AnimatedDeleteDialog(
-                      inspectionId: record.id,
-                      nopol: record.nopol,
-                      onDeletedSuccess: () {
-                        Navigator.of(context).pop(); // Return to dashboard
-                      },
+              // Large Prominent Delete Button
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (ctx) => AnimatedDeleteDialog(
+                        inspectionId: record.id,
+                        nopol: record.nopol,
+                        onDeletedSuccess: () {
+                          Navigator.of(context).pop(); // Return to dashboard
+                        },
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.delete_forever_rounded, size: 20),
+                  label: const Text(
+                    'Delete Inspection Record',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      letterSpacing: 0.3,
                     ),
-                  );
-                },
-                icon: const Icon(Icons.delete_forever_rounded, size: 20),
-                label: const Text(
-                  'Delete Inspection Record',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    letterSpacing: 0.3,
                   ),
-                ),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.danger,
-                  side: BorderSide(
-                    color: AppColors.danger.withAlpha(180),
-                    width: 1.5,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.danger,
+                    side: BorderSide(
+                      color: AppColors.danger.withAlpha(180),
+                      width: 1.5,
+                    ),
+                    shape: const StadiumBorder(),
                   ),
-                  shape: const StadiumBorder(),
                 ),
               ),
-            ),
+            ],
           ],
         ),
       ),

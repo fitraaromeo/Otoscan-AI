@@ -35,6 +35,9 @@ class AppColors {
   static const Color danger    = Color(0xFFEF4444); // --danger
   static const Color info      = Color(0xFF06B6D4); // --info
 
+  static const Color darkStatusFailed = Color(0xFFEF4444);
+  static const Color darkStatusSuccess = Color(0xFF10B981);
+
   static const Color successBg = Color(0x1F10B981); // --success-bg
   static const Color warningBg = Color(0x1FF59E0B); // --warning-bg
   static const Color dangerBg  = Color(0x1FEF4444); // --danger-bg

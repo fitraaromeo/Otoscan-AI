@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"strings"
 	"time"
 
 	"otoscan-api/config"
@@ -39,11 +40,19 @@ func GetVehicles(c *fiber.Ctx) error {
 	var total int64
 
 	page, limit := utils.GetPaginationParams(c)
+	userRole, _ := c.Locals("role").(string)
+	userID, _ := c.Locals("user_id").(string)
 
 	if config.DB != nil {
-		config.DB.Model(&models.Vehicle{}).Count(&total)
+		query := config.DB.Model(&models.Vehicle{})
+		// If user role is 'user' (non-admin), filter by owned user_id
+		if !strings.EqualFold(userRole, "admin") && userID != "" {
+			query = query.Where("user_id = ?", userID)
+		}
+
+		query.Count(&total)
 		offset := (page - 1) * limit
-		config.DB.Preload("User").Order("created_at desc").Limit(limit).Offset(offset).Find(&vehicles)
+		query.Preload("User").Order("created_at desc").Limit(limit).Offset(offset).Find(&vehicles)
 
 		for i := range vehicles {
 			PopulateUserVehicleCount(vehicles[i].User)
@@ -64,6 +73,8 @@ func GetVehicles(c *fiber.Ctx) error {
 func GetVehicleByID(c *fiber.Ctx) error {
 	id := c.Params("id")
 	var vehicle models.Vehicle
+	userRole, _ := c.Locals("role").(string)
+	userID, _ := c.Locals("user_id").(string)
 
 	if config.DB != nil {
 		err := config.DB.Preload("User").First(&vehicle, "id = ?", id).Error
@@ -72,6 +83,15 @@ func GetVehicleByID(c *fiber.Ctx) error {
 				"status":  "error",
 				"message": "Vehicle data not found",
 			})
+		}
+		// Non-admin user can only view their own vehicle
+		if !strings.EqualFold(userRole, "admin") {
+			if vehicle.UserID == nil || *vehicle.UserID != userID {
+				return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+					"status":  "error",
+					"message": "Anda tidak memiliki akses ke data kendaraan ini",
+				})
+			}
 		}
 		PopulateUserVehicleCount(vehicle.User)
 	}
@@ -99,9 +119,18 @@ func CreateVehicle(c *fiber.Ctx) error {
 		})
 	}
 
+	userRole, _ := c.Locals("role").(string)
+	userID, _ := c.Locals("user_id").(string)
+
+	assignedUserID := req.GetUserID()
+	// Non-admin user automatically assigns vehicle to themselves
+	if !strings.EqualFold(userRole, "admin") && userID != "" {
+		assignedUserID = &userID
+	}
+
 	v := models.Vehicle{
 		ID:        uuid.New().String(),
-		UserID:    req.GetUserID(),
+		UserID:    assignedUserID,
 		Nopol:     req.Nopol,
 		Merk:      req.Merk,
 		Tipe:      req.Tipe,
@@ -147,6 +176,19 @@ func UpdateVehicle(c *fiber.Ctx) error {
 		})
 	}
 
+	userRole, _ := c.Locals("role").(string)
+	userID, _ := c.Locals("user_id").(string)
+
+	// Non-admin user can only edit their own vehicle
+	if !strings.EqualFold(userRole, "admin") {
+		if v.UserID == nil || *v.UserID != userID {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"status":  "error",
+				"message": "Anda hanya dapat mengedit kendaraan milik Anda sendiri",
+			})
+		}
+	}
+
 	var req VehicleRequest
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -167,7 +209,9 @@ func UpdateVehicle(c *fiber.Ctx) error {
 		v.Nopol = req.Nopol
 	}
 
-	v.UserID = req.GetUserID()
+	if strings.EqualFold(userRole, "admin") {
+		v.UserID = req.GetUserID()
+	}
 	if req.Merk != "" {
 		v.Merk = req.Merk
 	}
@@ -197,6 +241,14 @@ func UpdateVehicle(c *fiber.Ctx) error {
 
 // DeleteVehicle handles soft deleting a vehicle record along with all its associated inspections
 func DeleteVehicle(c *fiber.Ctx) error {
+	userRole, _ := c.Locals("role").(string)
+	if !strings.EqualFold(userRole, "admin") {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Hanya Admin yang memiliki hak akses untuk menghapus data kendaraan",
+		})
+	}
+
 	id := c.Params("id")
 
 	if config.DB != nil {

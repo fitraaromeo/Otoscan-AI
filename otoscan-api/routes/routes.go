@@ -1,67 +1,97 @@
-﻿package routes
+package routes
 
 import (
 	"otoscan-api/handlers"
+	"otoscan-api/middleware"
 
 	"github.com/gofiber/fiber/v2"
 )
 
-// SetupRoutes registers all application routes cleanly on the Fiber app instance
+// SetupRoutes registers all application routes with JWT & Role-Based Access Control (RBAC)
 func SetupRoutes(app *fiber.App) {
 	// API Base Group
 	api := app.Group("/api")
 
-	// 1. Master Data Endpoints (/api/master)
-	master := api.Group("/master")
+	// -------------------------------------------------------------
+	// 1. Authentication Endpoints (/api/auth) - Public & Self Profile
+	// -------------------------------------------------------------
+	auth := api.Group("/auth")
+	auth.Post("/register", handlers.Register)
+	auth.Post("/login", handlers.Login)
+	auth.Post("/logout", handlers.Logout)
+	auth.Get("/me", middleware.Protected(), handlers.GetProfile)
+	auth.Put("/me", middleware.Protected(), handlers.UpdateProfile)
+
+	// -------------------------------------------------------------
+	// 2. Master Data Endpoints (/api/master)
+	// -------------------------------------------------------------
+	master := api.Group("/master", middleware.Protected())
+
+	// Read Master Data (Allowed for both 'user' and 'admin')
 	master.Get("/damage-types", handlers.GetDamageTypes)
-	master.Post("/damage-types", handlers.CreateDamageType)
-	master.Put("/damage-types/:id", handlers.UpdateDamageType)
-	master.Delete("/damage-types/:id", handlers.DeleteDamageType)
-
 	master.Get("/angle-captures", handlers.GetAngleCaptures)
-	master.Post("/angle-captures", handlers.CreateAngleCapture)
-	master.Put("/angle-captures/:id", handlers.UpdateAngleCapture)
-	master.Delete("/angle-captures/:id", handlers.DeleteAngleCapture)
-
 	master.Get("/inspection-statuses", handlers.GetInspectionStatuses)
-	master.Post("/inspection-statuses", handlers.CreateInspectionStatus)
-	master.Put("/inspection-statuses/:id", handlers.UpdateInspectionStatus)
-	master.Delete("/inspection-statuses/:id", handlers.DeleteInspectionStatus)
 
-	// 2. Users / Pemilik Kendaraan Endpoints (/api/users)
-	users := api.Group("/users")
+	// Modify Master Data (Admin Only)
+	masterAdmin := master.Group("", middleware.RequireRole("admin"))
+	masterAdmin.Post("/damage-types", handlers.CreateDamageType)
+	masterAdmin.Put("/damage-types/:id", handlers.UpdateDamageType)
+	masterAdmin.Delete("/damage-types/:id", handlers.DeleteDamageType)
+
+	masterAdmin.Post("/angle-captures", handlers.CreateAngleCapture)
+	masterAdmin.Put("/angle-captures/:id", handlers.UpdateAngleCapture)
+	masterAdmin.Delete("/angle-captures/:id", handlers.DeleteAngleCapture)
+
+	masterAdmin.Post("/inspection-statuses", handlers.CreateInspectionStatus)
+	masterAdmin.Put("/inspection-statuses/:id", handlers.UpdateInspectionStatus)
+	masterAdmin.Delete("/inspection-statuses/:id", handlers.DeleteInspectionStatus)
+
+	// -------------------------------------------------------------
+	// 3. User Management Endpoints (/api/users) - Admin Only
+	// -------------------------------------------------------------
+	users := api.Group("/users", middleware.Protected(), middleware.RequireRole("admin"))
 	users.Get("/", handlers.GetUsers)
 	users.Get("/:id", handlers.GetUserByID)
 	users.Post("/", handlers.CreateUser)
 	users.Put("/:id", handlers.UpdateUser)
 	users.Delete("/:id", handlers.DeleteUser)
 
-	// 3. Vehicles / Master Kendaraan Endpoints (/api/vehicles)
-	vehicles := api.Group("/vehicles")
-	vehicles.Get("/", handlers.GetVehicles)
-	vehicles.Get("/:id", handlers.GetVehicleByID)
-	vehicles.Post("/", handlers.CreateVehicle)
-	vehicles.Put("/:id", handlers.UpdateVehicle)
-	vehicles.Delete("/:id", handlers.DeleteVehicle)
-
-	// 4. Employees / Karyawan Endpoints (/api/employees)
-	employees := api.Group("/employees")
+	// -------------------------------------------------------------
+	// 4. Employee Management Endpoints (/api/employees) - Admin Only
+	// -------------------------------------------------------------
+	employees := api.Group("/employees", middleware.Protected(), middleware.RequireRole("admin"))
 	employees.Get("/", handlers.GetEmployees)
 	employees.Get("/:id", handlers.GetEmployeeByID)
 	employees.Post("/", handlers.CreateEmployee)
 	employees.Put("/:id", handlers.UpdateEmployee)
 	employees.Delete("/:id", handlers.DeleteEmployee)
 
-	// 5. Inspections & AI YOLOv12 Endpoints (/api/inspections)
-	inspections := api.Group("/inspections")
+	// -------------------------------------------------------------
+	// 5. Vehicles Endpoints (/api/vehicles)
+	// -------------------------------------------------------------
+	vehicles := api.Group("/vehicles", middleware.Protected())
+	vehicles.Get("/", handlers.GetVehicles)
+	vehicles.Get("/:id", handlers.GetVehicleByID)
+	vehicles.Post("/", handlers.CreateVehicle)
+	vehicles.Put("/:id", handlers.UpdateVehicle)
+	vehicles.Delete("/:id", middleware.RequireRole("admin"), handlers.DeleteVehicle)
+
+	// -------------------------------------------------------------
+	// 6. Inspections & AI YOLOv12 Endpoints (/api/inspections)
+	// -------------------------------------------------------------
+	inspections := api.Group("/inspections", middleware.Protected())
+
+	// Read Inspections (Allowed for both 'user' and 'admin' — non-admin scoped to owned vehicles)
 	inspections.Get("/", handlers.GetInspections)
 	inspections.Get("/:id", handlers.GetInspectionByID)
-	inspections.Post("/", handlers.CreateInspection)
-	inspections.Put("/:id", handlers.UpdateInspection)
-	inspections.Delete("/:id", handlers.DeleteInspection)
-	inspections.Post("/:id/damages", handlers.AddDamageItem)
-	inspections.Delete("/:id/damages/:damageId", handlers.DeleteDamageItem)
-	inspections.Post("/:id/detect", handlers.DetectDamageYOLOv12)
-	inspections.Post("/detect-preview", handlers.DetectDamagePreview)
-}
 
+	// Admin / Inspector Only Endpoints (Create, Edit, Delete, AI Scanning, Damage Items)
+	inspectionsAdmin := inspections.Group("", middleware.RequireRole("admin"))
+	inspectionsAdmin.Post("/", handlers.CreateInspection)
+	inspectionsAdmin.Put("/:id", handlers.UpdateInspection)
+	inspectionsAdmin.Delete("/:id", handlers.DeleteInspection)
+	inspectionsAdmin.Post("/:id/damages", handlers.AddDamageItem)
+	inspectionsAdmin.Delete("/:id/damages/:damageId", handlers.DeleteDamageItem)
+	inspectionsAdmin.Post("/:id/detect", handlers.DetectDamageYOLOv12)
+	inspectionsAdmin.Post("/detect-preview", handlers.DetectDamagePreview)
+}
