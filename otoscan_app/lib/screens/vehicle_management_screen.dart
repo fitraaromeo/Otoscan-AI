@@ -210,7 +210,7 @@ class VehicleManagementScreenState extends State<VehicleManagementScreen> {
     final appState = Provider.of<AppState>(context, listen: false);
     if (!appState.isAdmin) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('❌ Hanya Admin yang dapat menghapus kendaraan')),
+        const SnackBar(content: Text('❌ Only Admin can delete vehicles')),
       );
       return;
     }

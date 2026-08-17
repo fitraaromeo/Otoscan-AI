@@ -6,6 +6,7 @@ import '../models/inspection_model.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
 import 'inspection_detail_screen.dart';
+import 'login_screen.dart';
 import 'vehicle_entry_dialog.dart';
 import 'vehicle_scan_screen.dart';
 
@@ -71,6 +72,50 @@ class DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  void _handleLogout(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.darkCard2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.logout_rounded, color: AppColors.danger, size: 24),
+            SizedBox(width: 10),
+            Text('Confirm Logout', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: const Text(
+          'Are you sure you want to log out of OtoScan AI?',
+          style: TextStyle(color: AppColors.darkTextSecondary, fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.darkTextSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.danger,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              final appState = Provider.of<AppState>(context, listen: false);
+              await appState.logout();
+              if (!context.mounted) return;
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => const LoginScreen()),
+              );
+            },
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = true; // Dark mode only
@@ -109,58 +154,6 @@ class DashboardScreenState extends State<DashboardScreen> {
 
         return Scaffold(
           backgroundColor: AppColors.darkBackground,
-          appBar: AppBar(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            titleSpacing: 20,
-            title: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.neonCyan.withAlpha(35),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.document_scanner_rounded,
-                    color: AppColors.neonCyan,
-                    size: 22,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'OtoScan AI',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
-                          color: textPrimary,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(
-                        'Inspection System',
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: textSecondary,
-                          fontWeight: FontWeight.w400,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            actions: const [
-              SizedBox(width: 8),
-            ],
-          ),
           body: RefreshIndicator(
             onRefresh: refreshData,
             child: SingleChildScrollView(
@@ -176,6 +169,82 @@ class DashboardScreenState extends State<DashboardScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // --- Header Row: OtoScan AI + Aligned Logout Button ---
+                  SafeArea(
+                    bottom: false,
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 20, top: 4),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.neonCyan.withAlpha(35),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.document_scanner_rounded,
+                              color: AppColors.neonCyan,
+                              size: 22,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'OtoScan AI',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.5,
+                                    color: textPrimary,
+                                  ),
+                                ),
+                                Text(
+                                  'Inspection System',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: textSecondary,
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          InkWell(
+                            onTap: () => _handleLogout(context),
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: AppColors.dangerBg,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: AppColors.danger.withAlpha(80)),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.logout_rounded, color: AppColors.danger, size: 16),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    'Logout',
+                                    style: TextStyle(
+                                      color: AppColors.danger,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
                   // Quick Start Scan Container (Admin Only)
                   if (appState.isAdmin) ...[
                     Container(

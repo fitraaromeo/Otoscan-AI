@@ -104,8 +104,8 @@ class _VehicleEntryDialogState extends State<VehicleEntryDialog> {
       backgroundColor: Colors.transparent,
       builder: (context) {
         return _SearchablePickerSheet<Map<String, dynamic>>(
-          title: 'Cari & Pilih Kendaraan',
-          hintText: 'Ketik Nopol, Merk, Tipe, Pemilik...',
+          title: 'Search & Select Vehicle',
+          hintText: 'Type Plate, Make, Model, Owner...',
           items: _vehiclesList,
           filterPredicate: (item, query) {
             final nopol = item['nopol']?.toString().toLowerCase() ?? '';
@@ -171,8 +171,8 @@ class _VehicleEntryDialogState extends State<VehicleEntryDialog> {
       backgroundColor: Colors.transparent,
       builder: (context) {
         return _SearchablePickerSheet<Map<String, dynamic>>(
-          title: 'Cari & Pilih Inspector / Employee',
-          hintText: 'Ketik Nama atau Kode Karyawan...',
+          title: 'Search & Select Inspector',
+          hintText: 'Type Name or Employee Code...',
           items: _employeesList,
           filterPredicate: (item, query) {
             final name = item['name']?.toString().toLowerCase() ?? '';

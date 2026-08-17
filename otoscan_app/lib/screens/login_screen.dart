@@ -62,7 +62,7 @@ class _LoginScreenState extends State<LoginScreen> {
         _navigateToDashboard();
       } else {
         setState(() {
-          _errorMessage = res['message'] ?? 'Registrasi gagal';
+          _errorMessage = res['message'] ?? 'Registration failed';
         });
       }
     } else {
@@ -78,7 +78,7 @@ class _LoginScreenState extends State<LoginScreen> {
         _navigateToDashboard();
       } else {
         setState(() {
-          _errorMessage = res['message'] ?? 'Login gagal. Periksa email & password.';
+          _errorMessage = res['message'] ?? 'Login failed. Please check your email & password.';
         });
       }
     }
@@ -228,8 +228,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               const SizedBox(height: 6),
                               Text(
                                 _isRegisterMode
-                                    ? 'Buat Akun Baru Pemilik Kendaraan'
-                                    : 'Masuk ke Sistem Inspeksi OtoScan AI',
+                                    ? 'Create New Vehicle Owner Account'
+                                    : 'Sign in to OtoScan AI Inspection System',
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: AppColors.darkTextSecondary,
@@ -363,10 +363,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         if (_isRegisterMode) ...[
                           _buildTextField(
                             controller: _nameController,
-                            label: 'Nama Lengkap',
+                            label: 'Full Name',
                             icon: Icons.person_outline,
                             validator: (v) =>
-                                (v == null || v.trim().isEmpty) ? 'Nama wajib diisi' : null,
+                                (v == null || v.trim().isEmpty) ? 'Name is required' : null,
                           ),
                           const SizedBox(height: 16),
                         ],
@@ -374,12 +374,12 @@ class _LoginScreenState extends State<LoginScreen> {
                         // ── Email Field ────────────────────────────────────────
                         _buildTextField(
                           controller: _emailController,
-                          label: 'Alamat Email',
+                          label: 'Email Address',
                           icon: Icons.email_outlined,
                           keyboardType: TextInputType.emailAddress,
                           validator: (v) {
-                            if (v == null || v.trim().isEmpty) return 'Email wajib diisi';
-                            if (!v.contains('@')) return 'Format email tidak valid';
+                            if (v == null || v.trim().isEmpty) return 'Email is required';
+                            if (!v.contains('@')) return 'Invalid email format';
                             return null;
                           },
                         ),
@@ -406,8 +406,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             },
                           ),
                           validator: (v) {
-                            if (v == null || v.trim().isEmpty) return 'Password wajib diisi';
-                            if (v.trim().length < 6) return 'Password minimal 6 karakter';
+                            if (v == null || v.trim().isEmpty) return 'Password is required';
+                            if (v.trim().length < 6) return 'Password must be at least 6 characters';
                             return null;
                           },
                         ),
@@ -417,14 +417,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         if (_isRegisterMode) ...[
                           _buildTextField(
                             controller: _phoneController,
-                            label: 'Nomor Telepon',
+                            label: 'Phone Number',
                             icon: Icons.phone_outlined,
                             keyboardType: TextInputType.phone,
                           ),
                           const SizedBox(height: 16),
                           _buildTextField(
                             controller: _addressController,
-                            label: 'Alamat',
+                            label: 'Address',
                             icon: Icons.location_on_outlined,
                             maxLines: 2,
                           ),
@@ -456,7 +456,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                 )
                               : Text(
-                                  _isRegisterMode ? 'Daftar Sekarang' : 'Masuk Sistem',
+                                  _isRegisterMode ? 'Register Now' : 'Sign In',
                                   style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
